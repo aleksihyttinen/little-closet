@@ -4,6 +4,15 @@ LittleCloset is a personal inventory application for managing a baby's clothing 
 
 The project is built as a full-stack application using **Go, Next.js, React, and PostgreSQL**. The initial version is designed for a single admin user, with the architecture allowing for future expansion.
 
+## Deployment
+[The project is running here](https://little-closet.onrender.com)  
+(notice, it will take close to a minute to start after 15mins of inactivity)  
+
+Deploy stack:
+- Frontend: Render Web Service
+- Backend: Render Web Service
+- DB: Neon DB (Postgres)
+
 ## Features
 
 * View clothing inventory
