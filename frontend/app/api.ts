@@ -27,10 +27,16 @@ export async function apiRequest(
 ): Promise<ApiResponse> {
   const headers = new Headers(options.headers);
   if (options.body) headers.set("Content-Type", "application/json");
-
+	//TODO REMOVE AUTH HEADER LOGIC WHEN DOMAIN NAME IS SET
+  const token = localStorage.getItem("sessionToken");
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
-    headers,
+    headers: {
+      ...headers,
+      ...(token
+        ? { Authorization: `Bearer ${token}` }
+        : {}),
+    },
     credentials: "include",
   });
 

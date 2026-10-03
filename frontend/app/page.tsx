@@ -149,10 +149,19 @@ export default function Home() {
     setError("");
 
     try {
-      await apiRequest("/auth/login", {
+      const data = await apiRequest("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
+
+      //TODO REMOVE AUTH HEADER LOGIC WHEN DOMAIN NAME IS SET
+
+      if (!data.token) {
+        throw new Error("Login response did not contain a token");
+      }
+
+      localStorage.setItem("sessionToken", data.token);
+
       setSignedIn(true);
       setPassword("");
       setLoginOpen(false);
@@ -183,6 +192,7 @@ export default function Home() {
       }
       handleApiError(requestError, true);
     } finally {
+      localStorage.removeItem("sessionToken");
       setSignedIn(false);
       setNotice("signedOutNotice");
     }

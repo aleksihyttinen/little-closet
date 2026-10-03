@@ -48,6 +48,7 @@ export type ApiClothingItem = {
 
 export type ApiResponse = {
   error?: string;
+  token?: string;
   items?: ApiClothingItem[];
   item?: { ID?: string };
   outfit?: string;

@@ -1,7 +1,9 @@
 package auth
 
 import (
+	db "little-closet/db/generated"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,28 +12,47 @@ const userIDKey = "user_id"
 
 func (s *SessionService) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		cookie, err := c.Request.Cookie("session")
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "authentication required",
-			})
-			return
-		}
-
-		if cookie.Value == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "authentication required",
-			})
-			return
-		}
-
-		session, err := s.GetSessionByTokenHash(
-			c.Request.Context(),
-			cookie.Value,
+		var (
+			session       db.GetSessionByTokenHashRow
+			authenticated bool
+			err           error
 		)
-		if err != nil {
+		//TODO REMOVE AUTH HEADER LOGIC WHEN DOMAIN NAME IS SET
+		// 1. Prefer the cookie.
+		if cookie, cookieErr := c.Request.Cookie("session"); cookieErr == nil && cookie.Value != "" {
+			session, err = s.GetSessionByTokenHash(
+				c.Request.Context(),
+				cookie.Value,
+			)
+
+			if err == nil {
+				authenticated = true
+			}
+		}
+
+		// 2. Fall back to Authorization header.
+		if !authenticated {
+			auth := c.GetHeader("Authorization")
+
+			if strings.HasPrefix(auth, "Bearer ") {
+				token := strings.TrimPrefix(auth, "Bearer ")
+
+				if token != "" {
+					session, err = s.GetSessionByTokenHash(
+						c.Request.Context(),
+						token,
+					)
+
+					if err == nil {
+						authenticated = true
+					}
+				}
+			}
+		}
+
+		if !authenticated {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "invalid or expired session",
+				"error": "authentication required",
 			})
 			return
 		}

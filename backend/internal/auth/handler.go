@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -106,19 +107,48 @@ func (h *Handler) GetSessionByTokenHash(c *gin.Context) {
 }
 
 func (h *Handler) LogOut(c *gin.Context) {
-	token, err := c.Cookie("session")
-	if err != nil || token == "" {
+	var token string
+
+	// Prefer cookie.
+	if cookie, err := c.Cookie("session"); err == nil && cookie != "" {
+		token = cookie
+	}
+
+	// Fall back to Authorization header.
+	if token == "" {
+		auth := c.GetHeader("Authorization")
+
+		if strings.HasPrefix(auth, "Bearer ") {
+			token = strings.TrimPrefix(auth, "Bearer ")
+		}
+	}
+
+	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "token required",
 		})
 		return
 	}
 
-	err = h.sessionService.DeleteSession(c.Request.Context(), token)
+	err := h.sessionService.DeleteSession(
+		c.Request.Context(),
+		token,
+	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "session not found",
+			// Still clear the cookie.
+			http.SetCookie(c.Writer, &http.Cookie{
+				Name:     "session",
+				Value:    "",
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   true,
+				SameSite: http.SameSiteNoneMode,
+				MaxAge:   -1,
+			})
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "successfully logged out",
 			})
 			return
 		}
@@ -128,6 +158,17 @@ func (h *Handler) LogOut(c *gin.Context) {
 		})
 		return
 	}
+
+	// Clear cookie.
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   -1,
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "successfully logged out",
