@@ -1,16 +1,40 @@
 -- name: ListCategories :many
+WITH RECURSIVE category_tree AS (
+    SELECT
+        id,
+        name,
+        parent_id,
+        created_at,
+        ARRAY[name] AS path
+    FROM categories
+    WHERE parent_id IS NULL
+
+    UNION ALL
+
+    SELECT
+        child.id,
+        child.name,
+        child.parent_id,
+        child.created_at,
+        parent.path || child.name
+    FROM categories child
+    JOIN category_tree parent
+        ON child.parent_id = parent.id
+)
 SELECT
     id,
     name,
+    parent_id,
     created_at
-FROM categories
-ORDER BY name;
+FROM category_tree
+ORDER BY path;
 
 
 -- name: GetCategoryByID :one
 SELECT
     id,
     name,
+    parent_id,
     created_at
 FROM categories
 WHERE id = $1;
@@ -20,6 +44,7 @@ WHERE id = $1;
 SELECT
     id,
     name,
+    parent_id,
     created_at
 FROM categories
 WHERE name = $1;
@@ -28,13 +53,44 @@ WHERE name = $1;
 -- name: CreateCategory :one
 INSERT INTO categories (
     id,
-    name
+    name,
+    parent_id
 )
-VALUES ($1, $2)
+VALUES ($1, $2, $3)
 RETURNING
     id,
     name,
+    parent_id,
     created_at;
+
+-- name: UpdateCategory :one
+WITH RECURSIVE descendants AS (
+    SELECT id
+    FROM categories
+    WHERE parent_id = $1
+
+    UNION ALL
+
+    SELECT child.id
+    FROM categories child
+    JOIN descendants parent ON child.parent_id = parent.id
+)
+UPDATE categories
+SET
+    name = $2,
+    parent_id = $3
+WHERE categories.id = $1
+    AND $3 IS DISTINCT FROM $1
+    AND NOT EXISTS (SELECT 1 FROM descendants WHERE id = $3)
+RETURNING
+    id,
+    name,
+    parent_id,
+    created_at;
+
+-- name: DeleteCategory :exec
+DELETE FROM categories
+WHERE id = $1;
 
 
 -- name: ListSizes :many
@@ -76,6 +132,21 @@ RETURNING
     name,
     sort_order;
 
+-- name: UpdateSize :one
+UPDATE sizes
+SET
+    name = $2,
+    sort_order = $3
+WHERE id = $1
+RETURNING
+    id,
+    name,
+    sort_order;
+
+-- name: DeleteSize :exec
+DELETE FROM sizes
+WHERE id = $1;
+
 
 -- name: ListClothingItems :many
 SELECT
@@ -91,7 +162,7 @@ SELECT
 FROM clothing_items ci
 JOIN categories c ON c.id = ci.category_id
 JOIN sizes s ON s.id = ci.size_id
-ORDER BY ci.name;
+ORDER BY s.sort_order, s.name, ci.name;
 
 
 -- name: GetClothingItem :one

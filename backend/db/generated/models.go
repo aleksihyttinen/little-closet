@@ -12,17 +12,17 @@ type Category struct {
 	ID        pgtype.UUID
 	Name      string
 	CreatedAt pgtype.Timestamptz
+	ParentID  pgtype.UUID
 }
 
 type ClothingItem struct {
-	ID          pgtype.UUID
-	Name        string
-	CategoryID  pgtype.UUID
-	SizeID      pgtype.UUID
-	Quantity    int32
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
-	Description string
+	ID         pgtype.UUID
+	Name       string
+	CategoryID pgtype.UUID
+	SizeID     pgtype.UUID
+	Quantity   int32
+	CreatedAt  pgtype.Timestamptz
+	UpdatedAt  pgtype.Timestamptz
 }
 
 type Session struct {

@@ -5,53 +5,31 @@ import { useEffect, useState, type FormEvent } from "react";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
-const categories = [
-  { id: "11111111-1111-4111-8111-111111111111", name: "Bodysuits" },
-  { id: "22222222-2222-4222-8222-222222222222", name: "Tops" },
-  { id: "33333333-3333-4333-8333-333333333333", name: "Bottoms" },
-  { id: "44444444-4444-4444-8444-444444444444", name: "Dresses" },
-  { id: "55555555-5555-4555-8555-555555555555", name: "Outerwear" },
-  { id: "66666666-6666-4666-8666-666666666666", name: "Sleepwear" },
-  { id: "77777777-7777-4777-8777-777777777777", name: "Footwear" },
-  { id: "88888888-8888-4888-8888-888888888888", name: "Sets" },
-  { id: "99999999-9999-4999-8999-999999999999", name: "Accessories" },
-  { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", name: "Swimwear" },
-];
-
-const sizes = [
-  { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", name: "Newborn" },
-  { id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", name: "0-3M" },
-  { id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", name: "3-6M" },
-  { id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", name: "6-12M" },
-  { id: "ffffffff-ffff-4fff-8fff-ffffffffffff", name: "12-18M" },
-  { id: "12121212-1212-4121-8121-121212121212", name: "18-24M" },
-  { id: "13131313-1313-4131-8131-131313131313", name: "2T" },
-  { id: "14141414-1414-4141-8141-141414141414", name: "3T" },
-  { id: "15151515-1515-4151-8151-151515151515", name: "4T" },
-  { id: "16161616-1616-4161-8161-161616161616", name: "5T" },
-];
-
 type Language = "fi" | "en";
 
-const categoryLabels: Record<Language, Record<string, string>> = {
-  fi: {
-    "11111111-1111-4111-8111-111111111111": "Bodyt",
-    "22222222-2222-4222-8222-222222222222": "Paidat",
-    "33333333-3333-4333-8333-333333333333": "Alaosat",
-    "44444444-4444-4444-8444-444444444444": "Mekot",
-    "55555555-5555-4555-8555-555555555555": "Päällysvaatteet",
-    "66666666-6666-4666-8666-666666666666": "Yöasut",
-    "77777777-7777-4777-8777-777777777777": "Jalkineet",
-    "88888888-8888-4888-8888-888888888888": "Asut",
-    "99999999-9999-4999-8999-999999999999": "Asusteet",
-    "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa": "Uima-asut",
-  },
-  en: Object.fromEntries(categories.map(({ id, name }) => [id, name])),
+type ApiCategory = {
+  ID: string;
+  Name: string;
+  ParentID: string | null;
+  CreatedAt: string;
 };
 
-const sizeLabels: Record<Language, Record<string, string>> = {
-  fi: { [sizes[0].id]: "Vastasyntynyt" },
-  en: {},
+type ApiSize = {
+  ID: string;
+  Name: string;
+  SortOrder: number;
+};
+
+type CategoryOption = {
+  id: string;
+  name: string;
+  parentId: string | null;
+};
+
+type SizeOption = {
+  id: string;
+  name: string;
+  sortOrder: number;
 };
 
 const messages = {
@@ -69,6 +47,10 @@ const messages = {
     itemUpdated: "Vaate päivitetty.",
     itemAdded: "Vaate lisätty varastoon.",
     itemDeleted: "Vaate poistettu.",
+    categoryAdded: "Kategoria lisätty.",
+    sizeAdded: "Koko lisätty.",
+    categoryUpdated: "Kategoria päivitetty.",
+    sizeUpdated: "Koko päivitetty.",
     updateDetails: "Päivitä tiedot",
     addToInventory: "Lisää varastoon",
     editClothingItem: "Muokkaa vaatetta",
@@ -77,6 +59,17 @@ const messages = {
     namePlaceholder: "esim. Puuvillabody",
     category: "Kategoria",
     size: "Koko",
+    addCategory: "Lisää kategoria",
+    addSize: "Lisää koko",
+    categoryName: "Kategorian nimi",
+    parentCategory: "Yläkategoria (valinnainen)",
+    noParentCategory: "Ei yläkategoriaa",
+    sizeName: "Koon nimi",
+    manageCategories: "Muokkaa kategorioita",
+    manageSizes: "Muokkaa kokoja",
+    sizeOrder: "Järjestys",
+    categoryPlaceholder: "esim. Bodyt",
+    sizePlaceholder: "esim. 3T",
     quantity: "Määrä",
     saving: "Tallennetaan…",
     saveChanges: "Tallenna muutokset",
@@ -129,6 +122,10 @@ const messages = {
     itemUpdated: "Item updated.",
     itemAdded: "Item added to the closet.",
     itemDeleted: "Item deleted.",
+    categoryAdded: "Category added.",
+    sizeAdded: "Size added.",
+    categoryUpdated: "Category updated.",
+    sizeUpdated: "Size updated.",
     updateDetails: "Update details",
     addToInventory: "Add to inventory",
     editClothingItem: "Edit clothing item",
@@ -137,6 +134,17 @@ const messages = {
     namePlaceholder: "e.g. Cotton bodysuit",
     category: "Category",
     size: "Size",
+    addCategory: "Add category",
+    addSize: "Add size",
+    categoryName: "Category name",
+    parentCategory: "Parent category (optional)",
+    noParentCategory: "No parent category",
+    sizeName: "Size name",
+    manageCategories: "Edit categories",
+    manageSizes: "Edit sizes",
+    sizeOrder: "Order",
+    categoryPlaceholder: "e.g. Bodysuits",
+    sizePlaceholder: "e.g. 3T",
     quantity: "Quantity",
     saving: "Saving…",
     saveChanges: "Save changes",
@@ -177,7 +185,16 @@ const messages = {
   },
 } as const;
 
-type NoticeKey = "signedInNotice" | "signedOutNotice" | "itemUpdated" | "itemAdded" | "itemDeleted";
+type NoticeKey =
+  | "signedInNotice"
+  | "signedOutNotice"
+  | "itemUpdated"
+  | "itemAdded"
+  | "itemDeleted"
+  | "categoryAdded"
+  | "sizeAdded"
+  | "categoryUpdated"
+  | "sizeUpdated";
 type ErrorKey =
   | "loadError"
   | "connectionError"
@@ -210,6 +227,17 @@ type ApiClothingItem = {
 type ApiResponse = {
   error?: string;
   items?: ApiClothingItem[];
+  item?: { ID?: string };
+};
+
+type ApiCategoryResponse = {
+  error?: string;
+  items?: ApiCategory[];
+};
+
+type ApiSizeResponse = {
+  error?: string;
+  items?: ApiSize[];
 };
 
 type ClothingForm = {
@@ -219,12 +247,12 @@ type ClothingForm = {
   quantity: string;
 };
 
-const emptyForm: ClothingForm = {
+const createEmptyForm = (categoryId = "", sizeId = ""): ClothingForm => ({
   name: "",
-  category_id: categories[0].id,
-  size_id: sizes[0].id,
+  category_id: categoryId,
+  size_id: sizeId,
   quantity: "1",
-};
+});
 
 class ApiError extends Error {
   constructor(
@@ -279,12 +307,37 @@ async function fetchClothingItems(): Promise<ClothingItem[]> {
   return (data.items ?? []).map(normalizeItem);
 }
 
+async function fetchCategories(): Promise<CategoryOption[]> {
+  const data = (await apiRequest("/category")) as ApiCategoryResponse;
+  return (data.items ?? []).map((category) => ({
+    id: category.ID,
+    name: category.Name,
+    parentId: category.ParentID,
+  }));
+}
+
+async function fetchSizes(): Promise<SizeOption[]> {
+  const data = (await apiRequest("/size")) as ApiSizeResponse;
+  return (data.items ?? []).map((size) => ({
+    id: size.ID,
+    name: size.Name,
+    sortOrder: size.SortOrder,
+  }));
+}
+
+function getNextSizeOrder(sizes: SizeOption[]): string {
+  if (sizes.length === 0) return "0";
+  return String(Math.max(...sizes.map((size) => size.sortOrder)) + 1);
+}
+
 export default function Home() {
   const [language, setLanguage] = useState<Language>("fi");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [items, setItems] = useState<ClothingItem[]>([]);
-  const [form, setForm] = useState<ClothingForm>(emptyForm);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [sizes, setSizes] = useState<SizeOption[]>([]);
+  const [form, setForm] = useState<ClothingForm>(createEmptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<ErrorKey | "">("");
@@ -292,9 +345,22 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryParentId, setNewCategoryParentId] = useState("");
+  const [newSizeName, setNewSizeName] = useState("");
+  const [newSizeOrder, setNewSizeOrder] = useState<string | null>(null);
+  const [creatingReference, setCreatingReference] = useState<"category" | "size" | null>(null);
+  const [editingReference, setEditingReference] = useState<
+    { kind: "category" | "size"; id: string } | null
+  >(null);
+  const [referenceName, setReferenceName] = useState("");
+  const [referenceParentId, setReferenceParentId] = useState("");
+  const [referenceSortOrder, setReferenceSortOrder] = useState("0");
+  const [savingReferenceId, setSavingReferenceId] = useState<string | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const t = messages[language];
+  const sizeOrderValue = newSizeOrder ?? getNextSizeOrder(sizes);
 
   useEffect(() => {
     const savedLanguage = window.localStorage.getItem("little-closet-language");
@@ -319,32 +385,102 @@ export default function Home() {
 
     void checkSession();
   }, []);
+
   useEffect(() => {
     let active = true;
 
-    void fetchClothingItems()
-      .then((loadedItems) => {
-        if (active) setItems(loadedItems);
-      })
-      .catch((requestError: unknown) => {
+    const loadInitialData = async () => {
+      try {
+        const [loadedCategories, loadedSizes, loadedItems] = await Promise.all([
+          fetchCategories(),
+          fetchSizes(),
+          fetchClothingItems(),
+        ]);
+
+        if (!active) return;
+
+        setCategories(loadedCategories);
+        setSizes(loadedSizes);
+        setItems(loadedItems);
+        setForm((current) => ({
+          ...current,
+          category_id: current.category_id || loadedCategories[0]?.id || "",
+          size_id: current.size_id || loadedSizes[0]?.id || "",
+        }));
+      } catch {
         if (active) {
           setError("loadError");
         }
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    };
+
+    void loadInitialData();
 
     return () => {
       active = false;
     };
   }, []);
 
+  const refreshReferenceData = async () => {
+    const [nextCategories, nextSizes] = await Promise.all([
+      fetchCategories(),
+      fetchSizes(),
+    ]);
+
+    setCategories(nextCategories);
+    setSizes(nextSizes);
+    setForm((current) => ({
+      ...current,
+      category_id: nextCategories.some((entry) => entry.id === current.category_id)
+        ? current.category_id
+        : nextCategories[0]?.id ?? "",
+      size_id: nextSizes.some((entry) => entry.id === current.size_id)
+        ? current.size_id
+        : nextSizes[0]?.id ?? "",
+    }));
+
+    return { nextCategories, nextSizes };
+  };
+
+  const getCategoryPath = (categoryId: string, visited = new Set<string>()): string => {
+    const category = categories.find((entry) => entry.id === categoryId);
+    if (!category) return "";
+    if (!category.parentId || visited.has(category.id)) return category.name;
+
+    visited.add(category.id);
+    const parentPath = getCategoryPath(category.parentId, visited);
+    return parentPath ? `${parentPath} > ${category.name}` : category.name;
+  };
+
   const getCategoryName = (item: ClothingItem) =>
-    categoryLabels[language][item.category_id] ?? item.category_name;
+    getCategoryPath(item.category_id) || item.category_name || "Unknown category";
+
+  const getDescendantCategoryIds = (categoryId: string) => {
+    const descendantIds = new Set([categoryId]);
+    let foundDescendant = true;
+    while (foundDescendant) {
+      foundDescendant = false;
+      for (const category of categories) {
+        if (
+          category.parentId &&
+          descendantIds.has(category.parentId) &&
+          !descendantIds.has(category.id)
+        ) {
+          descendantIds.add(category.id);
+          foundDescendant = true;
+        }
+      }
+    }
+    return descendantIds;
+  };
+
+  const getSizeName = (item: ClothingItem) =>
+    item.size_name || sizes.find((entry) => entry.id === item.size_id)?.name || "Unknown size";
 
   const filteredItems = items.filter((item) =>
-    `${item.name} ${getCategoryName(item)} ${item.size_name}`
+    `${item.name} ${getCategoryName(item)} ${getSizeName(item)}`
       .toLowerCase()
       .includes(search.trim().toLowerCase()),
   );
@@ -352,6 +488,176 @@ export default function Home() {
 
   const refreshItems = async () => {
     setItems(await fetchClothingItems());
+  };
+
+  const handleCreateCategory = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!signedIn) {
+      setLoginOpen(true);
+      return;
+    }
+
+    const trimmedName = newCategoryName.trim();
+    if (!trimmedName) {
+      setError("invalidData");
+      return;
+    }
+
+    setCreatingReference("category");
+    setError("");
+    setNotice("");
+
+    try {
+      const created = await apiRequest("/category", {
+        method: "POST",
+        body: JSON.stringify({
+          name: trimmedName,
+          parent_id: newCategoryParentId || "",
+        }),
+      });
+
+      const { nextCategories } = await refreshReferenceData();
+      setNewCategoryName("");
+      setNewCategoryParentId("");
+      setForm((current) => ({
+        ...current,
+        category_id:
+          created.item?.ID ??
+          nextCategories.find(
+            (category) =>
+              category.name === trimmedName && category.parentId === (newCategoryParentId || null),
+          )?.id ??
+          current.category_id,
+      }));
+      setNotice("categoryAdded");
+    } catch (requestError) {
+      handleApiError(requestError);
+    } finally {
+      setCreatingReference(null);
+    }
+  };
+
+  const handleCreateSize = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!signedIn) {
+      setLoginOpen(true);
+      return;
+    }
+
+    const trimmedName = newSizeName.trim();
+    const parsedOrder = Number(sizeOrderValue);
+    if (!trimmedName || !Number.isInteger(parsedOrder) || parsedOrder < 0) {
+      setError("invalidData");
+      return;
+    }
+
+    setCreatingReference("size");
+    setError("");
+    setNotice("");
+
+    try {
+      await apiRequest("/size", {
+        method: "POST",
+        body: JSON.stringify({ name: trimmedName, sort_order: parsedOrder }),
+      });
+
+      const { nextSizes } = await refreshReferenceData();
+      setNewSizeName("");
+      setNewSizeOrder(null);
+      setForm((current) => ({
+        ...current,
+        size_id: nextSizes[nextSizes.length - 1]?.id ?? current.size_id ?? nextSizes[0]?.id ?? "",
+      }));
+      setNotice("sizeAdded");
+    } catch (requestError) {
+      handleApiError(requestError);
+    } finally {
+      setCreatingReference(null);
+    }
+  };
+
+  const startEditCategory = (category: CategoryOption) => {
+    setEditingReference({ kind: "category", id: category.id });
+    setReferenceName(category.name);
+    setReferenceParentId(category.parentId ?? "");
+    setError("");
+    setNotice("");
+  };
+
+  const startEditSize = (size: SizeOption) => {
+    setEditingReference({ kind: "size", id: size.id });
+    setReferenceName(size.name);
+    setReferenceSortOrder(String(size.sortOrder));
+    setError("");
+    setNotice("");
+  };
+
+  const cancelReferenceEdit = () => {
+    setEditingReference(null);
+    setReferenceName("");
+    setReferenceParentId("");
+    setReferenceSortOrder("0");
+  };
+
+  const handleUpdateCategory = async (
+    event: FormEvent<HTMLFormElement>,
+    category: CategoryOption,
+  ) => {
+    event.preventDefault();
+    const trimmedName = referenceName.trim();
+    if (!trimmedName) {
+      setError("invalidData");
+      return;
+    }
+
+    setSavingReferenceId(category.id);
+    setError("");
+    setNotice("");
+    try {
+      await apiRequest(`/category/${category.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: trimmedName, parent_id: referenceParentId }),
+      });
+      await refreshReferenceData();
+      await refreshItems();
+      cancelReferenceEdit();
+      setNotice("categoryUpdated");
+    } catch (requestError) {
+      handleApiError(requestError);
+    } finally {
+      setSavingReferenceId(null);
+    }
+  };
+
+  const handleUpdateSize = async (
+    event: FormEvent<HTMLFormElement>,
+    size: SizeOption,
+  ) => {
+    event.preventDefault();
+    const trimmedName = referenceName.trim();
+    const sortOrder = Number(referenceSortOrder);
+    if (!trimmedName || !Number.isInteger(sortOrder) || sortOrder < 0) {
+      setError("invalidData");
+      return;
+    }
+
+    setSavingReferenceId(size.id);
+    setError("");
+    setNotice("");
+    try {
+      await apiRequest(`/size/${size.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: trimmedName, sort_order: sortOrder }),
+      });
+      await refreshReferenceData();
+      await refreshItems();
+      cancelReferenceEdit();
+      setNotice("sizeUpdated");
+    } catch (requestError) {
+      handleApiError(requestError);
+    } finally {
+      setSavingReferenceId(null);
+    }
   };
 
   const handleApiError = (requestError: unknown, loginFailure = false) => {
@@ -448,7 +754,7 @@ export default function Home() {
         body: JSON.stringify(payload),
       });
       await refreshItems();
-      setForm(emptyForm);
+      setForm(createEmptyForm(categories[0]?.id ?? "", sizes[0]?.id ?? ""));
       setEditingId(null);
       setNotice(editingId ? "itemUpdated" : "itemAdded");
     } catch (requestError) {
@@ -486,7 +792,7 @@ export default function Home() {
       await apiRequest(`/clothing/${item.id}`, { method: "DELETE" });
       await refreshItems();
       if (editingId === item.id) {
-        setForm(emptyForm);
+        setForm(createEmptyForm(categories[0]?.id ?? "", sizes[0]?.id ?? ""));
         setEditingId(null);
       }
       setNotice("itemDeleted");
@@ -498,7 +804,7 @@ export default function Home() {
   };
 
   const cancelEdit = () => {
-    setForm(emptyForm);
+    setForm(createEmptyForm(categories[0]?.id ?? "", sizes[0]?.id ?? ""));
     setEditingId(null);
     setError("");
     setNotice("");
@@ -608,16 +914,14 @@ export default function Home() {
               </div>
             </div>
 
-            <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <form onSubmit={handleSave} className="mb-6 grid gap-4 border-b border-[#e1e5df] pb-6 sm:grid-cols-2 lg:grid-cols-5">
               <label className="text-sm font-medium text-[#45534b] lg:col-span-2">
                 {t.itemName}
                 <input
                   required
                   maxLength={120}
                   value={form.name}
-                  onChange={(event) =>
-                    setForm({ ...form, name: event.target.value })
-                  }
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
                   placeholder={t.namePlaceholder}
                   className="mt-1.5 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm text-[#202a27] outline-none transition focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
                 />
@@ -627,14 +931,12 @@ export default function Home() {
                 <select
                   required
                   value={form.category_id}
-                  onChange={(event) =>
-                    setForm({ ...form, category_id: event.target.value })
-                  }
+                  onChange={(event) => setForm({ ...form, category_id: event.target.value })}
                   className="mt-1.5 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
                 >
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
-                      {categoryLabels[language][category.id] ?? category.name}
+                      {getCategoryPath(category.id)}
                     </option>
                   ))}
                 </select>
@@ -644,14 +946,12 @@ export default function Home() {
                 <select
                   required
                   value={form.size_id}
-                  onChange={(event) =>
-                    setForm({ ...form, size_id: event.target.value })
-                  }
+                  onChange={(event) => setForm({ ...form, size_id: event.target.value })}
                   className="mt-1.5 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
                 >
                   {sizes.map((size) => (
                     <option key={size.id} value={size.id}>
-                      {sizeLabels[language][size.id] ?? size.name}
+                      {size.name}
                     </option>
                   ))}
                 </select>
@@ -665,9 +965,7 @@ export default function Home() {
                   max="2147483647"
                   step="1"
                   value={form.quantity}
-                  onChange={(event) =>
-                    setForm({ ...form, quantity: event.target.value })
-                  }
+                  onChange={(event) => setForm({ ...form, quantity: event.target.value })}
                   className="mt-1.5 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
                 />
               </label>
@@ -690,6 +988,174 @@ export default function Home() {
                 ) : null}
               </div>
             </form>
+
+            <div className="grid gap-6 border-t border-[#e1e5df] pt-5 md:grid-cols-2">
+              <section>
+                <h3 className="mb-2 text-sm font-semibold text-[#34433b]">{t.manageCategories}</h3>
+                <form onSubmit={handleCreateCategory} className="mb-4 border-b border-[#e8ebe6] pb-4">
+                  <label className="block text-sm font-medium text-[#45534b]">
+                    {t.categoryName}
+                    <input
+                      required
+                      maxLength={120}
+                      value={newCategoryName}
+                      onChange={(event) => setNewCategoryName(event.target.value)}
+                      placeholder={t.categoryPlaceholder}
+                      className="mt-1.5 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
+                    />
+                  </label>
+                  <label className="mt-3 block text-sm font-medium text-[#45534b]">
+                    {t.parentCategory}
+                    <select
+                      value={newCategoryParentId}
+                      onChange={(event) => setNewCategoryParentId(event.target.value)}
+                      className="mt-1.5 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
+                    >
+                      <option value="">{t.noParentCategory}</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>{getCategoryPath(category.id)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button type="submit" disabled={creatingReference !== null} className="mt-3 min-h-10 rounded-md bg-[#315c4c] px-4 text-sm font-semibold text-white disabled:opacity-45">
+                    {creatingReference === "category" ? "…" : t.addCategory}
+                  </button>
+                </form>
+                <div className="max-h-72 overflow-y-auto">
+                  {categories.map((category) => (
+                    <div key={category.id} className="border-b border-[#e8ebe6] py-3 last:border-b-0">
+                      {editingReference?.kind === "category" && editingReference.id === category.id ? (
+                        <form onSubmit={(event) => void handleUpdateCategory(event, category)} className="space-y-3">
+                          <label className="block text-sm font-medium text-[#45534b]">
+                            {t.categoryName}
+                            <input
+                              required
+                              maxLength={120}
+                              value={referenceName}
+                              onChange={(event) => setReferenceName(event.target.value)}
+                              className="mt-1 min-h-10 w-full rounded-md border border-[#cbd3ca] bg-white px-3 text-sm"
+                            />
+                          </label>
+                          <label className="block text-sm font-medium text-[#45534b]">
+                            {t.parentCategory}
+                            <select
+                              value={referenceParentId}
+                              onChange={(event) => setReferenceParentId(event.target.value)}
+                              className="mt-1 min-h-10 w-full rounded-md border border-[#cbd3ca] bg-white px-3 text-sm"
+                            >
+                              <option value="">{t.noParentCategory}</option>
+                              {categories
+                                .filter((option) => !getDescendantCategoryIds(category.id).has(option.id))
+                                .map((option) => (
+                                  <option key={option.id} value={option.id}>
+                                    {getCategoryPath(option.id)}
+                                  </option>
+                                ))}
+                            </select>
+                          </label>
+                          <div className="flex gap-2">
+                            <button type="submit" disabled={savingReferenceId === category.id} className="min-h-9 rounded-md bg-[#315c4c] px-3 text-xs font-semibold text-white disabled:opacity-45">
+                              {t.saveChanges}
+                            </button>
+                            <button type="button" onClick={cancelReferenceEdit} className="min-h-9 rounded-md border border-[#cbd3ca] px-3 text-xs font-semibold text-[#45534b]">
+                              {t.cancel}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="min-w-0 truncate text-sm text-[#34433b]">{getCategoryPath(category.id)}</p>
+                          <button type="button" onClick={() => startEditCategory(category)} className="shrink-0 rounded-md border border-[#cbd3ca] px-3 py-1.5 text-xs font-semibold text-[#315c4c] hover:bg-[#edf3eb]">
+                            {t.edit}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="mb-2 text-sm font-semibold text-[#34433b]">{t.manageSizes}</h3>
+                <form onSubmit={handleCreateSize} className="mb-4 border-b border-[#e8ebe6] pb-4">
+                  <label className="block text-sm font-medium text-[#45534b]">
+                    {t.sizeName}
+                    <input
+                      required
+                      maxLength={60}
+                      value={newSizeName}
+                      onChange={(event) => setNewSizeName(event.target.value)}
+                      placeholder={t.sizePlaceholder}
+                      className="mt-1.5 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
+                    />
+                  </label>
+                  <label className="mt-3 block text-sm font-medium text-[#45534b]">
+                    {t.sizeOrder}
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={sizeOrderValue}
+                      onChange={(event) => setNewSizeOrder(event.target.value)}
+                      className="mt-1.5 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
+                    />
+                  </label>
+                  <button type="submit" disabled={creatingReference !== null} className="mt-3 min-h-10 rounded-md bg-[#315c4c] px-4 text-sm font-semibold text-white disabled:opacity-45">
+                    {creatingReference === "size" ? "…" : t.addSize}
+                  </button>
+                </form>
+                <div className="max-h-72 overflow-y-auto">
+                  {sizes.map((size) => (
+                    <div key={size.id} className="border-b border-[#e8ebe6] py-3 last:border-b-0">
+                      {editingReference?.kind === "size" && editingReference.id === size.id ? (
+                        <form onSubmit={(event) => void handleUpdateSize(event, size)} className="space-y-3">
+                          <label className="block text-sm font-medium text-[#45534b]">
+                            {t.sizeName}
+                            <input
+                              required
+                              maxLength={60}
+                              value={referenceName}
+                              onChange={(event) => setReferenceName(event.target.value)}
+                              className="mt-1 min-h-10 w-full rounded-md border border-[#cbd3ca] bg-white px-3 text-sm"
+                            />
+                          </label>
+                          <label className="block text-sm font-medium text-[#45534b]">
+                            {t.sizeOrder}
+                            <input
+                              required
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={referenceSortOrder}
+                              onChange={(event) => setReferenceSortOrder(event.target.value)}
+                              className="mt-1 min-h-10 w-full rounded-md border border-[#cbd3ca] bg-white px-3 text-sm"
+                            />
+                          </label>
+                          <div className="flex gap-2">
+                            <button type="submit" disabled={savingReferenceId === size.id} className="min-h-9 rounded-md bg-[#315c4c] px-3 text-xs font-semibold text-white disabled:opacity-45">
+                              {t.saveChanges}
+                            </button>
+                            <button type="button" onClick={cancelReferenceEdit} className="min-h-9 rounded-md border border-[#cbd3ca] px-3 text-xs font-semibold text-[#45534b]">
+                              {t.cancel}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="min-w-0 truncate text-sm text-[#34433b]">
+                            {size.name} <span className="text-xs text-[#718077]">({size.sortOrder})</span>
+                          </p>
+                          <button type="button" onClick={() => startEditSize(size)} className="shrink-0 rounded-md border border-[#cbd3ca] px-3 py-1.5 text-xs font-semibold text-[#315c4c] hover:bg-[#edf3eb]">
+                            {t.edit}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
           </section>
         ) : (
           <section className="mb-8 flex flex-col gap-4 border border-[#d6dbd3] bg-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
@@ -761,7 +1227,7 @@ export default function Home() {
                         {item.name}
                       </th>
                       <td className="px-4 py-4 text-[#59675e]">{getCategoryName(item)}</td>
-                      <td className="px-4 py-4 text-[#59675e]">{sizeLabels[language][item.size_id] ?? item.size_name}</td>
+                      <td className="px-4 py-4 text-[#59675e]">{getSizeName(item)}</td>
                       <td className="px-4 py-4 text-right font-semibold tabular-nums">
                         {item.quantity}
                       </td>

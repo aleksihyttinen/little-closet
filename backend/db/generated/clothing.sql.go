@@ -14,24 +14,39 @@ import (
 const createCategory = `-- name: CreateCategory :one
 INSERT INTO categories (
     id,
-    name
+    name,
+    parent_id
 )
-VALUES ($1, $2)
+VALUES ($1, $2, $3)
 RETURNING
     id,
     name,
+    parent_id,
     created_at
 `
 
 type CreateCategoryParams struct {
-	ID   pgtype.UUID
-	Name string
+	ID       pgtype.UUID
+	Name     string
+	ParentID pgtype.UUID
 }
 
-func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
-	row := q.db.QueryRow(ctx, createCategory, arg.ID, arg.Name)
-	var i Category
-	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+type CreateCategoryRow struct {
+	ID        pgtype.UUID
+	Name      string
+	ParentID  pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (CreateCategoryRow, error) {
+	row := q.db.QueryRow(ctx, createCategory, arg.ID, arg.Name, arg.ParentID)
+	var i CreateCategoryRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ParentID,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -62,17 +77,7 @@ type CreateClothingItemParams struct {
 	Quantity   int32
 }
 
-type CreateClothingItemRow struct {
-	ID         pgtype.UUID
-	Name       string
-	CategoryID pgtype.UUID
-	SizeID     pgtype.UUID
-	Quantity   int32
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
-}
-
-func (q *Queries) CreateClothingItem(ctx context.Context, arg CreateClothingItemParams) (CreateClothingItemRow, error) {
+func (q *Queries) CreateClothingItem(ctx context.Context, arg CreateClothingItemParams) (ClothingItem, error) {
 	row := q.db.QueryRow(ctx, createClothingItem,
 		arg.ID,
 		arg.Name,
@@ -80,7 +85,7 @@ func (q *Queries) CreateClothingItem(ctx context.Context, arg CreateClothingItem
 		arg.SizeID,
 		arg.Quantity,
 	)
-	var i CreateClothingItemRow
+	var i ClothingItem
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -119,6 +124,16 @@ func (q *Queries) CreateSize(ctx context.Context, arg CreateSizeParams) (Size, e
 	return i, err
 }
 
+const deleteCategory = `-- name: DeleteCategory :exec
+DELETE FROM categories
+WHERE id = $1
+`
+
+func (q *Queries) DeleteCategory(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteCategory, id)
+	return err
+}
+
 const deleteClothingItem = `-- name: DeleteClothingItem :exec
 DELETE FROM clothing_items
 WHERE id = $1
@@ -129,19 +144,42 @@ func (q *Queries) DeleteClothingItem(ctx context.Context, id pgtype.UUID) error 
 	return err
 }
 
+const deleteSize = `-- name: DeleteSize :exec
+DELETE FROM sizes
+WHERE id = $1
+`
+
+func (q *Queries) DeleteSize(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteSize, id)
+	return err
+}
+
 const getCategoryByID = `-- name: GetCategoryByID :one
 SELECT
     id,
     name,
+    parent_id,
     created_at
 FROM categories
 WHERE id = $1
 `
 
-func (q *Queries) GetCategoryByID(ctx context.Context, id pgtype.UUID) (Category, error) {
+type GetCategoryByIDRow struct {
+	ID        pgtype.UUID
+	Name      string
+	ParentID  pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) GetCategoryByID(ctx context.Context, id pgtype.UUID) (GetCategoryByIDRow, error) {
 	row := q.db.QueryRow(ctx, getCategoryByID, id)
-	var i Category
-	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	var i GetCategoryByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ParentID,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -149,15 +187,28 @@ const getCategoryByName = `-- name: GetCategoryByName :one
 SELECT
     id,
     name,
+    parent_id,
     created_at
 FROM categories
 WHERE name = $1
 `
 
-func (q *Queries) GetCategoryByName(ctx context.Context, name string) (Category, error) {
+type GetCategoryByNameRow struct {
+	ID        pgtype.UUID
+	Name      string
+	ParentID  pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) GetCategoryByName(ctx context.Context, name string) (GetCategoryByNameRow, error) {
 	row := q.db.QueryRow(ctx, getCategoryByName, name)
-	var i Category
-	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	var i GetCategoryByNameRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ParentID,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -240,24 +291,59 @@ func (q *Queries) GetSizeByName(ctx context.Context, name string) (Size, error) 
 }
 
 const listCategories = `-- name: ListCategories :many
+WITH RECURSIVE category_tree AS (
+    SELECT
+        id,
+        name,
+        parent_id,
+        created_at,
+        ARRAY[name] AS path
+    FROM categories
+    WHERE parent_id IS NULL
+
+    UNION ALL
+
+    SELECT
+        child.id,
+        child.name,
+        child.parent_id,
+        child.created_at,
+        parent.path || child.name
+    FROM categories child
+    JOIN category_tree parent
+        ON child.parent_id = parent.id
+)
 SELECT
     id,
     name,
+    parent_id,
     created_at
-FROM categories
-ORDER BY name
+FROM category_tree
+ORDER BY path
 `
 
-func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
+type ListCategoriesRow struct {
+	ID        pgtype.UUID
+	Name      string
+	ParentID  pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) ListCategories(ctx context.Context) ([]ListCategoriesRow, error) {
 	rows, err := q.db.Query(ctx, listCategories)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Category
+	var items []ListCategoriesRow
 	for rows.Next() {
-		var i Category
-		if err := rows.Scan(&i.ID, &i.Name, &i.CreatedAt); err != nil {
+		var i ListCategoriesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ParentID,
+			&i.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -282,7 +368,7 @@ SELECT
 FROM clothing_items ci
 JOIN categories c ON c.id = ci.category_id
 JOIN sizes s ON s.id = ci.size_id
-ORDER BY ci.name
+ORDER BY s.sort_order, s.name, ci.name
 `
 
 type ListClothingItemsRow struct {
@@ -356,6 +442,57 @@ func (q *Queries) ListSizes(ctx context.Context) ([]Size, error) {
 	return items, nil
 }
 
+const updateCategory = `-- name: UpdateCategory :one
+WITH RECURSIVE descendants AS (
+    SELECT id
+    FROM categories
+    WHERE parent_id = $1
+
+    UNION ALL
+
+    SELECT child.id
+    FROM categories child
+    JOIN descendants parent ON child.parent_id = parent.id
+)
+UPDATE categories
+SET
+    name = $2,
+    parent_id = $3
+WHERE categories.id = $1
+    AND $3 IS DISTINCT FROM $1
+    AND NOT EXISTS (SELECT 1 FROM descendants WHERE id = $3)
+RETURNING
+    id,
+    name,
+    parent_id,
+    created_at
+`
+
+type UpdateCategoryParams struct {
+	ID       pgtype.UUID
+	Name     string
+	ParentID pgtype.UUID
+}
+
+type UpdateCategoryRow struct {
+	ID        pgtype.UUID
+	Name      string
+	ParentID  pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (UpdateCategoryRow, error) {
+	row := q.db.QueryRow(ctx, updateCategory, arg.ID, arg.Name, arg.ParentID)
+	var i UpdateCategoryRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ParentID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateClothingItem = `-- name: UpdateClothingItem :one
 UPDATE clothing_items
 SET
@@ -383,17 +520,7 @@ type UpdateClothingItemParams struct {
 	Quantity   int32
 }
 
-type UpdateClothingItemRow struct {
-	ID         pgtype.UUID
-	Name       string
-	CategoryID pgtype.UUID
-	SizeID     pgtype.UUID
-	Quantity   int32
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
-}
-
-func (q *Queries) UpdateClothingItem(ctx context.Context, arg UpdateClothingItemParams) (UpdateClothingItemRow, error) {
+func (q *Queries) UpdateClothingItem(ctx context.Context, arg UpdateClothingItemParams) (ClothingItem, error) {
 	row := q.db.QueryRow(ctx, updateClothingItem,
 		arg.ID,
 		arg.Name,
@@ -401,7 +528,7 @@ func (q *Queries) UpdateClothingItem(ctx context.Context, arg UpdateClothingItem
 		arg.SizeID,
 		arg.Quantity,
 	)
-	var i UpdateClothingItemRow
+	var i ClothingItem
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -411,5 +538,30 @@ func (q *Queries) UpdateClothingItem(ctx context.Context, arg UpdateClothingItem
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
+	return i, err
+}
+
+const updateSize = `-- name: UpdateSize :one
+UPDATE sizes
+SET
+    name = $2,
+    sort_order = $3
+WHERE id = $1
+RETURNING
+    id,
+    name,
+    sort_order
+`
+
+type UpdateSizeParams struct {
+	ID        pgtype.UUID
+	Name      string
+	SortOrder int32
+}
+
+func (q *Queries) UpdateSize(ctx context.Context, arg UpdateSizeParams) (Size, error) {
+	row := q.db.QueryRow(ctx, updateSize, arg.ID, arg.Name, arg.SortOrder)
+	var i Size
+	err := row.Scan(&i.ID, &i.Name, &i.SortOrder)
 	return i, err
 }

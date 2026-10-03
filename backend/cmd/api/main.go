@@ -47,6 +47,8 @@ func main() {
 	api.POST("/auth/logout", authHandler.LogOut)
 	api.GET("/auth/session", authHandler.GetSessionByTokenHash)
 	api.GET("/clothing", clothingHandler.List)
+	api.GET("/size", clothingHandler.ListSizes)
+	api.GET("/category", clothingHandler.ListCategories)
 
 	protected := api.Group("")
 	protected.Use(authHandler.AuthMiddleware())
@@ -54,6 +56,15 @@ func main() {
 	protected.POST("/clothing", clothingHandler.Create)
 	protected.PUT("/clothing/:id", clothingHandler.Update)
 	protected.DELETE("/clothing/:id", clothingHandler.Delete)
+
+	protected.POST("/size", clothingHandler.CreateSize)
+	protected.PUT("/size/:id", clothingHandler.UpdateSize)
+	protected.DELETE("/size/:id", clothingHandler.DeleteSize)
+
+	protected.POST("/category", clothingHandler.CreateCategory)
+	protected.PUT("/category/:id", clothingHandler.UpdateCategory)
+	protected.DELETE("/category/:id", clothingHandler.DeleteCategory)
+
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",
