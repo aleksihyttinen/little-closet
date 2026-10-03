@@ -26,6 +26,10 @@ func main() {
 	queries := dbgenerated.New(db)
 
 	router := gin.Default()
+
+	if err := router.SetTrustedProxies(nil); err != nil {
+		log.Fatal(err)
+	}
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendURL},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
