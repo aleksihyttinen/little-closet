@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	DatabaseURL string
+	FrontendURL string
 	HTTPAddr    string
 }
 
@@ -20,14 +21,21 @@ func Load() Config {
 		log.Fatal("DATABASE_URL is not set")
 	}
 
-	httpAddr := os.Getenv("HTTP_ADDR")
+	httpAddr := os.Getenv("PORT")
 	if httpAddr == "" {
-		httpAddr = ":8080"
+		httpAddr = "8080"
 	}
 
+	httpAddr = "0.0.0.0:" + httpAddr
+
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:3000"
+	}
 	return Config{
 		DatabaseURL: databaseURL,
 		HTTPAddr:    httpAddr,
+		FrontendURL: frontendURL,
 	}
 }
 
