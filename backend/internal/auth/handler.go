@@ -65,7 +65,7 @@ func (h *Handler) Login(c *gin.Context) {
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   int(sessionDuration.Seconds()),
 	})
 
