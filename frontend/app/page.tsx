@@ -43,6 +43,7 @@ export default function Home() {
   const [notice, setNotice] = useState<NoticeKey | "">("");
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [loginOpen, setLoginOpen] = useState(false);
   const t = messages[language];
 
@@ -90,16 +91,24 @@ export default function Home() {
   }, [language]);
 
   useEffect(() => {
+    let active = true;
+
     const checkSession = async () => {
       try {
         await apiRequest("/auth/session", { method: "GET" });
-        setSignedIn(true);
+        if (active) setSignedIn(true);
       } catch {
-        setSignedIn(false);
+        if (active) setSignedIn(false);
+      } finally {
+        if (active) setSessionLoading(false);
       }
     };
 
     void checkSession();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -186,6 +195,7 @@ export default function Home() {
           t={t}
           language={language}
           signedIn={signedIn}
+          sessionLoading={sessionLoading}
           totalUnits={totalUnits}
           items={items}
           onLanguageChange={changeLanguage}
@@ -223,7 +233,11 @@ export default function Home() {
           </p>
         ) : null}
 
-        {signedIn ? (
+        {sessionLoading ? (
+          <section role="status" className="mb-8 border border-[#d6dbd3] bg-white p-5 text-sm text-[#68746d]">
+            {t.checkingSession}
+          </section>
+        ) : signedIn ? (
           <AdminPanel
             t={t}
             controller={admin}

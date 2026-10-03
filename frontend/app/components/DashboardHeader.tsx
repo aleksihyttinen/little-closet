@@ -5,6 +5,7 @@ type DashboardHeaderProps = {
   t: Messages;
   language: Language;
   signedIn: boolean;
+  sessionLoading: boolean;
   totalUnits: number;
   items: ClothingItem[];
   onLanguageChange: (language: Language) => void;
@@ -16,6 +17,7 @@ export default function DashboardHeader({
   t,
   language,
   signedIn,
+  sessionLoading,
   totalUnits,
   items,
   onLanguageChange,
@@ -54,9 +56,10 @@ export default function DashboardHeader({
           <button
             type="button"
             onClick={signedIn ? onLogout : onSignIn}
-            className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#315c4c] px-5 text-sm font-semibold text-white transition hover:bg-[#244738] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315c4c]"
+            disabled={sessionLoading}
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#315c4c] px-5 text-sm font-semibold text-white transition hover:bg-[#244738] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315c4c] disabled:cursor-wait disabled:opacity-70"
           >
-            {signedIn ? t.logOut : t.adminSignIn}
+            {sessionLoading ? t.checkingSession : signedIn ? t.logOut : t.adminSignIn}
           </button>
         </div>
       </header>
