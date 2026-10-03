@@ -4,10 +4,13 @@ import (
 	"context"
 	dbgenerated "little-closet/db/generated"
 	"little-closet/internal/auth"
+	"little-closet/internal/clothing"
 	"little-closet/internal/config"
 	"little-closet/internal/database"
 	"log"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,14 +26,34 @@ func main() {
 	queries := dbgenerated.New(db)
 
 	router := gin.Default()
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	authService := auth.NewService(queries)
-	authHandler := auth.NewHandler(authService)
+	sessionService := auth.NewSessionService(queries)
+	authHandler := auth.NewHandler(authService, sessionService)
+	clothingService := clothing.NewService(queries)
+	clothingHandler := clothing.NewHandler(clothingService)
 
 	api := router.Group("/api/v1")
 
 	api.POST("/auth/login", authHandler.Login)
+	api.POST("/auth/logout", authHandler.LogOut)
+	api.GET("/auth/session", authHandler.GetSessionByTokenHash)
+	api.GET("/clothing", clothingHandler.List)
 
+	protected := api.Group("")
+	protected.Use(authHandler.AuthMiddleware())
+
+	protected.POST("/clothing", clothingHandler.Create)
+	protected.PUT("/clothing/:id", clothingHandler.Update)
+	protected.DELETE("/clothing/:id", clothingHandler.Delete)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",

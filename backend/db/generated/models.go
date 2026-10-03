@@ -15,13 +15,22 @@ type Category struct {
 }
 
 type ClothingItem struct {
-	ID         pgtype.UUID
-	Name       string
-	CategoryID pgtype.UUID
-	SizeID     pgtype.UUID
-	Quantity   int32
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
+	ID          pgtype.UUID
+	Name        string
+	CategoryID  pgtype.UUID
+	SizeID      pgtype.UUID
+	Quantity    int32
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+	Description string
+}
+
+type Session struct {
+	ID        pgtype.UUID
+	TokenHash string
+	UserID    pgtype.UUID
+	ExpiresAt pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
 }
 
 type Size struct {

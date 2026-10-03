@@ -62,7 +62,17 @@ type CreateClothingItemParams struct {
 	Quantity   int32
 }
 
-func (q *Queries) CreateClothingItem(ctx context.Context, arg CreateClothingItemParams) (ClothingItem, error) {
+type CreateClothingItemRow struct {
+	ID         pgtype.UUID
+	Name       string
+	CategoryID pgtype.UUID
+	SizeID     pgtype.UUID
+	Quantity   int32
+	CreatedAt  pgtype.Timestamptz
+	UpdatedAt  pgtype.Timestamptz
+}
+
+func (q *Queries) CreateClothingItem(ctx context.Context, arg CreateClothingItemParams) (CreateClothingItemRow, error) {
 	row := q.db.QueryRow(ctx, createClothingItem,
 		arg.ID,
 		arg.Name,
@@ -70,7 +80,7 @@ func (q *Queries) CreateClothingItem(ctx context.Context, arg CreateClothingItem
 		arg.SizeID,
 		arg.Quantity,
 	)
-	var i ClothingItem
+	var i CreateClothingItemRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -373,7 +383,17 @@ type UpdateClothingItemParams struct {
 	Quantity   int32
 }
 
-func (q *Queries) UpdateClothingItem(ctx context.Context, arg UpdateClothingItemParams) (ClothingItem, error) {
+type UpdateClothingItemRow struct {
+	ID         pgtype.UUID
+	Name       string
+	CategoryID pgtype.UUID
+	SizeID     pgtype.UUID
+	Quantity   int32
+	CreatedAt  pgtype.Timestamptz
+	UpdatedAt  pgtype.Timestamptz
+}
+
+func (q *Queries) UpdateClothingItem(ctx context.Context, arg UpdateClothingItemParams) (UpdateClothingItemRow, error) {
 	row := q.db.QueryRow(ctx, updateClothingItem,
 		arg.ID,
 		arg.Name,
@@ -381,7 +401,7 @@ func (q *Queries) UpdateClothingItem(ctx context.Context, arg UpdateClothingItem
 		arg.SizeID,
 		arg.Quantity,
 	)
-	var i ClothingItem
+	var i UpdateClothingItemRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
