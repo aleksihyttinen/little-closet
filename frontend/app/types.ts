@@ -50,6 +50,17 @@ export type ApiResponse = {
   error?: string;
   items?: ApiClothingItem[];
   item?: { ID?: string };
+  outfit?: string;
+  weather?: OutfitWeather | string;
+};
+
+export type OutfitWeather = {
+  current: {
+    temperature_2m: number;
+    apparent_temperature: number;
+    precipitation: number;
+    wind_speed_10m: number;
+  };
 };
 
 export type ApiCategory = {

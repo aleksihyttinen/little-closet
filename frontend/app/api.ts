@@ -5,6 +5,7 @@ import type {
   ApiSizeResponse,
   CategoryOption,
   ClothingItem,
+  OutfitWeather,
   SizeOption,
 } from "./types";
 
@@ -82,4 +83,56 @@ export async function fetchSizes(): Promise<SizeOption[]> {
     name: size.Name,
     sortOrder: size.SortOrder,
   }));
+}
+
+function isOutfitWeather(value: unknown): value is OutfitWeather {
+  if (!value || typeof value !== "object" || !("current" in value)) return false;
+
+  const current = value.current;
+  return Boolean(
+    current
+    && typeof current === "object"
+    && "temperature_2m" in current
+    && typeof current.temperature_2m === "number"
+    && Number.isFinite(current.temperature_2m)
+    && "apparent_temperature" in current
+    && typeof current.apparent_temperature === "number"
+    && Number.isFinite(current.apparent_temperature)
+    && "precipitation" in current
+    && typeof current.precipitation === "number"
+    && Number.isFinite(current.precipitation)
+    && "wind_speed_10m" in current
+    && typeof current.wind_speed_10m === "number"
+    && Number.isFinite(current.wind_speed_10m),
+  );
+}
+
+export async function generateOutfit(
+  latitude: number,
+  longitude: number,
+  language: "en" | "fi",
+): Promise<{ outfit: string; weather: OutfitWeather }> {
+  const data = await apiRequest("/ai/generate-outfit", {
+    method: "POST",
+    body: JSON.stringify({ latitude, longitude, language }),
+  });
+
+  let weather: unknown = data.weather;
+  if (typeof weather === "string") {
+    try {
+      const bytes = Uint8Array.from(atob(weather), (character) => character.charCodeAt(0));
+      weather = JSON.parse(new TextDecoder().decode(bytes));
+    } catch {
+      throw new ApiError("Invalid outfit weather response", 502);
+    }
+  }
+
+  if (
+    typeof data.outfit !== "string"
+    || !isOutfitWeather(weather)
+  ) {
+    throw new ApiError("Invalid outfit response", 502);
+  }
+
+  return { outfit: data.outfit, weather };
 }

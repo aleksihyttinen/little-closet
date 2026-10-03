@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -12,8 +13,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { generateOutfit } from "../api";
 import type { Language, Messages } from "../messages";
-import type { ClothingItem, SizeOption } from "../types";
+import type { ClothingItem, OutfitWeather, SizeOption } from "../types";
 
 type InventoryInsightsProps = {
   items: ClothingItem[];
@@ -31,6 +33,25 @@ type UnitData = {
   units: number;
 };
 
+type Coordinates = {
+  latitude: number;
+  longitude: number;
+};
+
+type OutfitSuggestion = {
+  outfit: string;
+  weather: OutfitWeather;
+  language: Language;
+};
+
+type LocationErrorKey =
+  | "locationPermissionDenied"
+  | "locationUnavailable"
+  | "locationTimeout"
+  | "locationNotSupported";
+
+type OutfitErrorKey = LocationErrorKey | "weatherOutfitError";
+
 const categoryColors = [
   "#315c4c",
   "#d7a45b",
@@ -42,6 +63,39 @@ const categoryColors = [
   "#526a7a",
 ];
 
+function getBrowserLocation(): Promise<Coordinates> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject("locationNotSupported" satisfies LocationErrorKey);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => resolve({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      }),
+      (error) => {
+        const errorKey: LocationErrorKey =
+          error.code === error.PERMISSION_DENIED
+            ? "locationPermissionDenied"
+            : error.code === error.TIMEOUT
+              ? "locationTimeout"
+              : "locationUnavailable";
+        reject(errorKey);
+      },
+      { enableHighAccuracy: false, maximumAge: 600_000, timeout: 10_000 },
+    );
+  });
+}
+
+function isLocationErrorKey(error: unknown): error is LocationErrorKey {
+  return error === "locationPermissionDenied"
+    || error === "locationUnavailable"
+    || error === "locationTimeout"
+    || error === "locationNotSupported";
+}
+
 export default function InventoryInsights({
   items,
   sizes,
@@ -52,11 +106,58 @@ export default function InventoryInsights({
   getSizeName,
 }: InventoryInsightsProps) {
   const locale = language === "fi" ? "fi-FI" : "en-US";
-  const numberFormat = new Intl.NumberFormat(locale);
+  const numberFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
   const dateFormat = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   });
+  const coordinates = useRef<Coordinates | null>(null);
+  const locationRequest = useRef<Promise<Coordinates> | null>(null);
+  const [suggestion, setSuggestion] = useState<OutfitSuggestion | null>(null);
+  const [suggestionOpen, setSuggestionOpen] = useState(false);
+  const [outfitError, setOutfitError] = useState<{
+    key: OutfitErrorKey;
+    language: Language;
+  } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadOutfit = async () => {
+      try {
+        const location = coordinates.current ?? await (
+          locationRequest.current ??= getBrowserLocation()
+        );
+        if (!active) return;
+        coordinates.current = location;
+        locationRequest.current = null;
+
+        const result = await generateOutfit(
+          location.latitude,
+          location.longitude,
+          language,
+        );
+        if (active) {
+          setSuggestion({ ...result, language });
+          setSuggestionOpen(false);
+          setOutfitError(null);
+        }
+      } catch (error) {
+        if (active) {
+          if (!coordinates.current) locationRequest.current = null;
+          setOutfitError({
+            key: isLocationErrorKey(error) ? error : "weatherOutfitError",
+            language,
+          });
+        }
+      }
+    };
+
+    void loadOutfit();
+    return () => {
+      active = false;
+    };
+  }, [language]);
 
   const categoryTotals = new Map<string, UnitData>();
   for (const item of items) {
@@ -96,6 +197,58 @@ export default function InventoryInsights({
       <h2 id="inventory-insights-title" className="mb-5 text-lg font-semibold text-[#293730]">
         {t.inventoryInsights}
       </h2>
+      <div className="mb-7 border-b border-[#e1e5df] pb-5">
+        <h3 className="text-sm font-semibold text-[#45534b]">{t.weatherOutfitTitle}</h3>
+        {outfitError?.language === language ? (
+          <p role="alert" className="mt-3 text-sm text-[#8c3928]">{t[outfitError.key]}</p>
+        ) : null}
+        {!suggestion || suggestion.language !== language ? (
+          !outfitError || outfitError.language !== language ? (
+            <p role="status" className="mt-3 text-sm text-[#68746d]">
+              {t.loadingWeatherOutfit}
+            </p>
+          ) : null
+        ) : (
+          <div className="mt-4" aria-live="polite">
+            <div className="border-l-2 border-[#94adb0] bg-white/70 px-4 py-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-[#65716b]">
+                {t.currentWeather}
+              </h4>
+              <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#34433b]">
+                <span>
+                  {numberFormat.format(suggestion.weather.current.temperature_2m)} °C
+                </span>
+                <span>
+                  {t.feelsLike} {numberFormat.format(suggestion.weather.current.apparent_temperature)} °C
+                </span>
+                <span>
+                  {t.wind} {numberFormat.format(suggestion.weather.current.wind_speed_10m)} km/h
+                </span>
+                <span>
+                  {t.precipitation} {numberFormat.format(suggestion.weather.current.precipitation)} mm
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-expanded={suggestionOpen}
+              aria-controls="weather-outfit-suggestion"
+              onClick={() => setSuggestionOpen((open) => !open)}
+              className="mt-3 min-h-10 rounded-md border border-[#cbd3ca] bg-white px-4 text-sm font-semibold text-[#315c4c] transition hover:bg-[#f4f6f1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315c4c]"
+            >
+              {suggestionOpen ? t.hideOutfitSuggestion : t.showOutfitSuggestion}
+            </button>
+            {suggestionOpen ? (
+              <p
+                id="weather-outfit-suggestion"
+                className="mt-4 whitespace-pre-line text-sm leading-6 text-[#34433b]"
+              >
+                {suggestion.outfit}
+              </p>
+            ) : null}
+          </div>
+        )}
+      </div>
       <div className="grid gap-7 lg:grid-cols-3 lg:gap-0">
         <section className="min-w-0 lg:pr-6">
           <h3 className="mb-3 text-sm font-semibold text-[#45534b]">{t.unitsByCategory}</h3>
