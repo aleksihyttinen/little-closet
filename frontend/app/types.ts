@@ -7,7 +7,9 @@ export type NoticeKey =
   | "categoryAdded"
   | "sizeAdded"
   | "categoryUpdated"
-  | "sizeUpdated";
+  | "sizeUpdated"
+  | "categoryDeleted"
+  | "sizeDeleted";
 
 export type ErrorKey =
   | "loadError"
@@ -17,6 +19,7 @@ export type ErrorKey =
   | "loginFailed"
   | "sessionExpired"
   | "notFound"
+  | "referenceInUse"
   | "serverError";
 
 export type ClothingItem = {
@@ -27,6 +30,8 @@ export type ClothingItem = {
   category_name: string;
   size_id: string;
   size_name: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ApiClothingItem = {
@@ -37,6 +42,8 @@ export type ApiClothingItem = {
   CategoryName: string;
   SizeID: string;
   SizeName: string;
+  CreatedAt: string;
+  UpdatedAt: string;
 };
 
 export type ApiResponse = {

@@ -5,6 +5,7 @@ import { ApiError, apiRequest, fetchClothingItems } from "./api";
 import { messages, type Language } from "./messages";
 import AdminPanel from "./components/AdminPanel";
 import DashboardHeader from "./components/DashboardHeader";
+import InventoryInsights from "./components/InventoryInsights";
 import InventorySection from "./components/InventorySection";
 import LoginDialog from "./components/LoginDialog";
 import { useAdminPanel } from "./hooks/useAdminPanel";
@@ -60,11 +61,13 @@ export default function Home() {
             : "sessionExpired"
           : status === 404
             ? "notFound"
-            : status >= 500
-              ? "serverError"
-              : requestError instanceof ApiError
-                ? "requestFailed"
-                : "connectionError";
+            : status === 409
+              ? "referenceInUse"
+              : status >= 500
+                ? "serverError"
+                : requestError instanceof ApiError
+                  ? "requestFailed"
+                  : "connectionError";
     setError(errorKey);
     if (status === 401 && !loginFailure) {
       setSignedIn(false);
@@ -193,6 +196,16 @@ export default function Home() {
           }}
         />
 
+        <InventoryInsights
+          items={items}
+          sizes={admin.sizes}
+          language={language}
+          loading={loading || admin.referencesLoading}
+          t={t}
+          getCategoryName={admin.getCategoryName}
+          getSizeName={admin.getSizeName}
+        />
+
         {error ? (
           <p
             role="alert"
@@ -237,6 +250,7 @@ export default function Home() {
           deletingId={admin.deletingId}
           t={t}
           getCategoryName={admin.getCategoryName}
+          getTopCategoryName={admin.getTopCategoryName}
           getSizeName={admin.getSizeName}
           onEdit={admin.editItem}
           onDelete={admin.deleteItem}

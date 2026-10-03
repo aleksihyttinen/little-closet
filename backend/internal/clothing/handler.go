@@ -421,6 +421,11 @@ func (h *Handler) DeleteSize(c *gin.Context) {
 	}
 
 	if err := h.service.DeleteSize(c.Request.Context(), pgtype.UUID{Bytes: sizeID, Valid: true}); err != nil {
+		var postgresError *pgconn.PgError
+		if errors.As(err, &postgresError) && postgresError.Code == "23503" {
+			c.JSON(http.StatusConflict, gin.H{"error": "size is still used by clothing items"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete size"})
 		return
 	}

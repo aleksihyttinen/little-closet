@@ -56,6 +56,8 @@ function normalizeItem(item: ApiClothingItem): ClothingItem {
     category_name: item.CategoryName,
     size_id: item.SizeID,
     size_name: item.SizeName,
+    created_at: item.CreatedAt,
+    updated_at: item.UpdatedAt,
   };
 }
 

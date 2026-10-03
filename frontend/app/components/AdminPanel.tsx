@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import type { Messages } from "../messages";
 import type { useAdminPanel } from "../hooks/useAdminPanel";
 
@@ -10,13 +9,14 @@ type AdminPanelProps = {
 };
 
 export default function AdminPanel({ t, controller }: AdminPanelProps) {
-  const [expanded, setExpanded] = useState(true);
   const {
     categories,
     sizes,
     form,
     setForm,
     editingId,
+    panelExpanded,
+    setPanelExpanded,
     saving,
     newCategoryName,
     setNewCategoryName,
@@ -43,6 +43,8 @@ export default function AdminPanel({ t, controller }: AdminPanelProps) {
     createSize: onCreateSize,
     updateCategory: onUpdateCategory,
     updateSize: onUpdateSize,
+    deleteCategory: onDeleteCategory,
+    deleteSize: onDeleteSize,
     startEditCategory: onStartEditCategory,
     startEditSize: onStartEditSize,
     cancelReferenceEdit: onCancelReferenceEdit,
@@ -61,16 +63,16 @@ export default function AdminPanel({ t, controller }: AdminPanelProps) {
         </div>
         <button
           type="button"
-          aria-expanded={expanded}
+          aria-expanded={panelExpanded}
           aria-controls="admin-tools-content"
-          onClick={() => setExpanded((isExpanded) => !isExpanded)}
+          onClick={() => setPanelExpanded((isExpanded) => !isExpanded)}
           className="min-h-10 rounded-md border border-[#cbd3ca] px-3 text-sm font-semibold text-[#45534b] transition hover:bg-[#f4f6f1]"
         >
-          {expanded ? t.hideAdminPanel : t.showAdminPanel}
+          {panelExpanded ? t.hideAdminPanel : t.showAdminPanel}
         </button>
       </div>
 
-      <div id="admin-tools-content" hidden={!expanded}>
+      <div id="admin-tools-content" hidden={!panelExpanded}>
           <form onSubmit={onSaveItem} className="mb-6 grid gap-4 border-b border-[#e1e5df] pb-6 sm:grid-cols-2 lg:grid-cols-5">
             <label className="text-sm font-medium text-[#45534b] lg:col-span-2">
               {t.itemName}
@@ -202,7 +204,10 @@ export default function AdminPanel({ t, controller }: AdminPanelProps) {
                     ) : (
                       <div className="flex items-center justify-between gap-3">
                         <p className="min-w-0 truncate text-sm text-[#34433b]">{getCategoryPath(category.id)}</p>
-                        <button type="button" onClick={() => onStartEditCategory(category)} className="shrink-0 rounded-md border border-[#cbd3ca] px-3 py-1.5 text-xs font-semibold text-[#315c4c] hover:bg-[#edf3eb]">{t.edit}</button>
+                        <div className="flex shrink-0 gap-2">
+                          <button type="button" disabled={savingReferenceId === category.id} onClick={() => onStartEditCategory(category)} className="rounded-md border border-[#cbd3ca] px-3 py-1.5 text-xs font-semibold text-[#315c4c] hover:bg-[#edf3eb] disabled:opacity-45">{t.edit}</button>
+                          <button type="button" disabled={savingReferenceId === category.id} onClick={() => void onDeleteCategory(category)} className="rounded-md border border-[#e0c8c0] px-3 py-1.5 text-xs font-semibold text-[#9b4938] hover:bg-[#fff3ef] disabled:opacity-45">{savingReferenceId === category.id ? t.deleting : t.delete}</button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -248,7 +253,10 @@ export default function AdminPanel({ t, controller }: AdminPanelProps) {
                         <p className="min-w-0 truncate text-sm text-[#34433b]">
                           {size.name} <span className="text-xs text-[#718077]">({size.sortOrder})</span>
                         </p>
-                        <button type="button" onClick={() => onStartEditSize(size)} className="shrink-0 rounded-md border border-[#cbd3ca] px-3 py-1.5 text-xs font-semibold text-[#315c4c] hover:bg-[#edf3eb]">{t.edit}</button>
+                        <div className="flex shrink-0 gap-2">
+                          <button type="button" disabled={savingReferenceId === size.id} onClick={() => onStartEditSize(size)} className="rounded-md border border-[#cbd3ca] px-3 py-1.5 text-xs font-semibold text-[#315c4c] hover:bg-[#edf3eb] disabled:opacity-45">{t.edit}</button>
+                          <button type="button" disabled={savingReferenceId === size.id} onClick={() => void onDeleteSize(size)} className="rounded-md border border-[#e0c8c0] px-3 py-1.5 text-xs font-semibold text-[#9b4938] hover:bg-[#fff3ef] disabled:opacity-45">{savingReferenceId === size.id ? t.deleting : t.delete}</button>
+                        </div>
                       </div>
                     )}
                   </div>

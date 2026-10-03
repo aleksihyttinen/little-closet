@@ -43,6 +43,7 @@ export function useAdminPanel({
   const [sizes, setSizes] = useState<SizeOption[]>([]);
   const [form, setForm] = useState<ClothingForm>(createEmptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [panelExpanded, setPanelExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -123,6 +124,18 @@ export function useAdminPanel({
   const getCategoryName = (item: ClothingItem) =>
     getCategoryPath(item.category_id) || item.category_name || "Unknown category";
 
+  const getTopCategoryName = (item: ClothingItem) => {
+    let category = categories.find((entry) => entry.id === item.category_id);
+    const visited = new Set<string>();
+    while (category?.parentId && !visited.has(category.id)) {
+      visited.add(category.id);
+      const parent = categories.find((entry) => entry.id === category?.parentId);
+      if (!parent) break;
+      category = parent;
+    }
+    return category?.name ?? item.category_name ?? "Unknown category";
+  };
+
   const getSizeName = (item: ClothingItem) =>
     item.size_name || sizes.find((entry) => entry.id === item.size_id)?.name || "Unknown size";
 
@@ -190,6 +203,7 @@ export function useAdminPanel({
       quantity: String(item.quantity),
     });
     setEditingId(item.id);
+    setPanelExpanded(true);
     setError("");
     setNotice("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -383,12 +397,61 @@ export function useAdminPanel({
     }
   };
 
+  const deleteCategory = async (category: CategoryOption) => {
+    if (!signedIn) {
+      openLogin();
+      return;
+    }
+    const categoryPath = getCategoryPath(category.id);
+    if (!window.confirm(t.confirmDeleteCategory(categoryPath))) return;
+
+    setSavingReferenceId(category.id);
+    setError("");
+    setNotice("");
+    try {
+      await apiRequest(`/category/${category.id}`, { method: "DELETE" });
+      await refreshReferenceData();
+      await refreshItems();
+      if (editingReference?.id === category.id) cancelReferenceEdit();
+      setNotice("categoryDeleted");
+    } catch (error) {
+      handleApiError(error);
+    } finally {
+      setSavingReferenceId(null);
+    }
+  };
+
+  const deleteSize = async (size: SizeOption) => {
+    if (!signedIn) {
+      openLogin();
+      return;
+    }
+    if (!window.confirm(t.confirmDeleteSize(size.name))) return;
+
+    setSavingReferenceId(size.id);
+    setError("");
+    setNotice("");
+    try {
+      await apiRequest(`/size/${size.id}`, { method: "DELETE" });
+      await refreshReferenceData();
+      await refreshItems();
+      if (editingReference?.id === size.id) cancelReferenceEdit();
+      setNotice("sizeDeleted");
+    } catch (error) {
+      handleApiError(error);
+    } finally {
+      setSavingReferenceId(null);
+    }
+  };
+
   return {
     categories,
     sizes,
     form,
     setForm,
     editingId,
+    panelExpanded,
+    setPanelExpanded,
     saving,
     deletingId,
     referencesLoading,
@@ -412,6 +475,7 @@ export function useAdminPanel({
     savingReferenceId,
     getCategoryPath,
     getCategoryName,
+    getTopCategoryName,
     getSizeName,
     getDescendantCategoryIds,
     saveItem,
@@ -425,6 +489,8 @@ export function useAdminPanel({
     cancelReferenceEdit,
     updateCategory,
     updateSize,
+    deleteCategory,
+    deleteSize,
   };
 }
 
