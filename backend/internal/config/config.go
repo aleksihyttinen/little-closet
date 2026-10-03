@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	FrontendURL string
-	HTTPAddr    string
+	DatabaseURL     string
+	FrontendURL     string
+	HTTPAddr        string
+	NeonFunctionURL string
 }
 
 func Load() Config {
@@ -32,10 +33,17 @@ func Load() Config {
 	if frontendURL == "" {
 		frontendURL = "http://localhost:3000"
 	}
+
+	neonFunctionURL := os.Getenv("NEON_FUNCTION_URL")
+	if neonFunctionURL == "" {
+		log.Fatal("NEON_FUNCTION_URL is not set")
+	}
+
 	return Config{
-		DatabaseURL: databaseURL,
-		HTTPAddr:    httpAddr,
-		FrontendURL: frontendURL,
+		DatabaseURL:     databaseURL,
+		HTTPAddr:        httpAddr,
+		FrontendURL:     frontendURL,
+		NeonFunctionURL: neonFunctionURL,
 	}
 }
 

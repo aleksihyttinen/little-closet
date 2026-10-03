@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	dbgenerated "little-closet/db/generated"
+	"little-closet/internal/ai"
 	"little-closet/internal/auth"
 	"little-closet/internal/clothing"
 	"little-closet/internal/config"
 	"little-closet/internal/database"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -27,6 +29,10 @@ func main() {
 
 	router := gin.Default()
 
+	httpClient := &http.Client{
+		Timeout: 60 * time.Second,
+	}
+
 	if err := router.SetTrustedProxies(nil); err != nil {
 		log.Fatal(err)
 	}
@@ -45,6 +51,9 @@ func main() {
 	clothingService := clothing.NewService(queries)
 	clothingHandler := clothing.NewHandler(clothingService)
 
+	aiService := ai.NewService(queries, httpClient, cfg.NeonFunctionURL)
+	aiHandler := ai.NewHandler(aiService)
+
 	api := router.Group("/api/v1")
 
 	api.POST("/auth/login", authHandler.Login)
@@ -53,6 +62,8 @@ func main() {
 	api.GET("/clothing", clothingHandler.List)
 	api.GET("/size", clothingHandler.ListSizes)
 	api.GET("/category", clothingHandler.ListCategories)
+
+	api.POST("/ai/generate-outfit", aiHandler.GenerateOutfit)
 
 	protected := api.Group("")
 	protected.Use(authHandler.AuthMiddleware())

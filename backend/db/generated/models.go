@@ -25,6 +25,17 @@ type ClothingItem struct {
 	UpdatedAt  pgtype.Timestamptz
 }
 
+type OutfitGenerationCache struct {
+	ID                pgtype.UUID
+	Latitude          float64
+	Longitude         float64
+	Language          string
+	WardrobeUpdatedAt pgtype.Timestamptz
+	Outfit            string
+	Weather           []byte
+	CreatedAt         pgtype.Timestamptz
+}
+
 type Session struct {
 	ID        pgtype.UUID
 	TokenHash string
