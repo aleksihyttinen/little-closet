@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -57,14 +58,20 @@ export default function Home() {
   const signingInRef = useRef(false);
   const t = messages[language];
 
-  const showError: Dispatch<SetStateAction<ErrorKey | "">> = (nextError) => {
-    setError(nextError);
-    setNotice("");
-  };
-  const showNotice: Dispatch<SetStateAction<NoticeKey | "">> = (nextNotice) => {
-    setNotice(nextNotice);
-    setError("");
-  };
+  const showError = useCallback<Dispatch<SetStateAction<ErrorKey | "">>>(
+    (nextError) => {
+      setError(nextError);
+      setNotice("");
+    },
+    [],
+  );
+  const showNotice = useCallback<Dispatch<SetStateAction<NoticeKey | "">>>(
+    (nextNotice) => {
+      setNotice(nextNotice);
+      setError("");
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!error && !notice) return;
@@ -77,41 +84,51 @@ export default function Home() {
     return () => window.clearTimeout(timeout);
   }, [error, notice]);
 
-  const refreshItems = async () => {
+  const refreshItems = useCallback(async () => {
     setItems(await fetchClothingItems());
-  };
+  }, []);
 
-  const handleApiError = (requestError: unknown, loginFailure = false) => {
-    const status = requestError instanceof ApiError ? requestError.status : 0;
-    const errorKey: ErrorKey =
-      status === 400
-        ? "invalidData"
-        : status === 401
-          ? loginFailure
-            ? "loginFailed"
-            : "sessionExpired"
-          : status === 404
-            ? "notFound"
-            : status === 409
-              ? "referenceInUse"
-              : status >= 500
-                ? "serverError"
-                : requestError instanceof ApiError
-                  ? "requestFailed"
-                  : "connectionError";
-    showError(errorKey);
-    if (status === 401 && !loginFailure) {
-      setSignedIn(false);
-      setLoginOpen(true);
-    }
-  };
+  const handleApiError = useCallback(
+    (requestError: unknown, loginFailure = false) => {
+      const status = requestError instanceof ApiError ? requestError.status : 0;
+
+      const errorKey: ErrorKey =
+        status === 400
+          ? "invalidData"
+          : status === 401
+            ? loginFailure
+              ? "loginFailed"
+              : "sessionExpired"
+            : status === 404
+              ? "notFound"
+              : status === 409
+                ? "referenceInUse"
+                : status >= 500
+                  ? "serverError"
+                  : requestError instanceof ApiError
+                    ? "requestFailed"
+                    : "connectionError";
+
+      showError(errorKey);
+
+      if (status === 401 && !loginFailure) {
+        setSignedIn(false);
+        setLoginOpen(true);
+      }
+    },
+    [showError],
+  );
+
+  const openLogin = useCallback(() => {
+    setLoginOpen(true);
+  }, []);
 
   const admin = useAdminPanel({
     signedIn,
     t,
     setError: showError,
     setNotice: showNotice,
-    openLogin: () => setLoginOpen(true),
+    openLogin,
     handleApiError,
     refreshItems,
   });
@@ -165,7 +182,7 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [showError]);
 
   const totalUnits = items.reduce((total, item) => total + item.quantity, 0);
 

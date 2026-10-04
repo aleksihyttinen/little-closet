@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { apiRequest, fetchCategories, fetchSizes } from "../api";
 import type { Messages } from "../messages";
 import type {
@@ -58,7 +58,7 @@ export function useAdminPanel({
   const [savingReferenceId, setSavingReferenceId] = useState<string | null>(null);
   const [referencesLoading, setReferencesLoading] = useState(true);
   const sizeOrderValue = newSizeOrder ?? getNextSizeOrder(sizes);
-
+  const adminPanelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let active = true;
 
@@ -89,6 +89,15 @@ export function useAdminPanel({
       active = false;
     };
   }, [setError]);
+
+  useEffect(() => {
+    if (!editingId || !panelExpanded) return;
+
+    adminPanelRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [editingId, panelExpanded]);
 
   const refreshReferenceData = async () => {
     const [nextCategories, nextSizes] = await Promise.all([
@@ -206,7 +215,6 @@ export function useAdminPanel({
     setPanelExpanded(true);
     setError("");
     setNotice("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const deleteItem = async (item: ClothingItem) => {
@@ -445,6 +453,7 @@ export function useAdminPanel({
   };
 
   return {
+    adminPanelRef,
     categories,
     sizes,
     form,
