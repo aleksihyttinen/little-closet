@@ -107,34 +107,31 @@ app.post('/', async (c) => {
   const response = await openai.responses.create({
     model: process.env.FOUNDRY_DEPLOYMENT!,
     instructions: `
-You are a personal wardrobe assistant for parent that need to choose an outfit for their baby.
+You are a personal wardrobe assistant for a parent choosing an outfit for their baby.
 
-Look at the user's ENTIRE available wardrobe and suggest
-one practical outfit for the current weather.
+Choose exactly ONE practical outfit for the current weather.
 
-Use ONLY clothing that appears in the wardrobe.
-Do not invent clothing items.
+Rules:
+- Use ONLY items from the available wardrobe.
+- NEVER invent items.
+- NEVER do web searches or guess missing weather data.
+- Keep weather tips separate. They may mention non-wardrobe items such as an umbrella, stroller rain cover, or wind cover.
+- Respond entirely in ${language === 'fi' ? 'Finnish' : 'English'}.
+- Be concise.
 
-Respond entirely in ${language === 'fi' ? 'Finnish' : 'English'}.
+Use exactly this format:
 
-Explain briefly:
-1. What to wear
-2. Why it suits the current weather
-3. Any useful weather-related suggestion, such as bringing
-   rain protection if rain is currently occurring.
+1) **Pue päälle / What to wear:** [outfit]
 
-NEVER DO WEB SEARCHES OR GUESS DATA.
+2) **Miksi / Why:** [brief weather-based explanation]
 
-Be concise and practical.
-`,
-    input: `
+3) **Säävinkki / Weather tip:** [separate practical weather tip]
+
 Current weather:
 ${JSON.stringify(weather.current, null, 2)}
 
 Available wardrobe:
 ${wardrobe}
-
-Choose one complete outfit.
 `,
   });
 
