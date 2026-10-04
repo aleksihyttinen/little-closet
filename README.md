@@ -1,96 +1,92 @@
 # LittleCloset
 
-LittleCloset is a full-stack wardrobe management application designed for organizing a child's clothing collection by category, size, and quantity. The platform combines a practical inventory workflow with a modern, responsive interface and AI-assisted outfit recommendations.
+LittleCloset is a full-stack wardrobe management application for organizing children's clothing by category, size, and quantity.
 
-The project is built with Go, Next.js, React, and PostgreSQL, with deployment using Render and Neon infrastructure. It is structured as a portfolio-ready product that demonstrates both backend systems design and cloud-integrated AI functionality.
+It includes AI-assisted clothing recognition and outfit recommendations, with a Go REST API, Next.js frontend, PostgreSQL database, and serverless AI functions.
+
+## Project Highlights
+
+- Full-stack application with Go, Next.js, React, and PostgreSQL
+- REST API with database-backed inventory management
+- Serverless AI integration using Neon Functions and Microsoft Foundry
+- Structured AI image analysis with database-validated categories and sizes
+- AI size estimation with explicit `tag` / `estimated` classification
+- Weather-aware outfit recommendations using Open-Meteo
+- Finnish and English localization
+- Responsive UI with admin authentication
 
 ## Live Demo
 
 [LittleCloset on Render](https://little-closet.onrender.com)
 
-Note: the service may take around one minute to start after a period of inactivity.
+> The service may take around one minute to start after a period of inactivity.
 
-## Core Features
+## Features
 
-- Inventory tracking for clothing items
-- Search by category, size, and quantity
-- Add, edit, and remove item records
-- Dashboard with inventory overview and basic reporting
-- Admin authentication for secure access to editing
-- Responsive UI for desktop and mobile use
-- AI-powered outfit suggestions based on available wardrobe and live weather
+- Clothing inventory management
+- Search and filtering by name, category, and size
+- Inventory dashboard and reporting
+- Responsive desktop and mobile UI
+- AI clothing image analysis
+- AI outfit recommendations using live weather data
 
-## AI Outfit Recommendation
+## AI Features
 
-A key feature of the project is the AI outfit assistant, deployed as a serverless function using Neon Functions.
+### Clothing Image Analysis
 
-The workflow is as follows:
+Users can take or upload a clothing photo when adding an item. The AI analyzes the image and returns:
 
-- The Neon Function reads the current wardrobe inventory from the database
-- It fetches live weather data for the provided location
-- It uses an AI model to generate a practical outfit recommendation
-- The response is returned in English or Finnish, depending on the user's preference
+- Clothing name
+- Existing database category
+- Existing database size
+- Size source: `tag` or `estimated`
 
-This feature demonstrates a real-world integration of cloud serverless functions, external APIs, and database-backed AI logic in a production-style application.
+The analysis uses the categories and sizes stored in PostgreSQL, allowing the result to map directly to existing inventory records. The detected values are used to pre-fill the inventory form for user review before saving.
 
-## Tech Stack
+### Outfit Recommendations
 
-- Frontend: Next.js, React, TypeScript
-- Backend: Go, REST API
-- Database: PostgreSQL via Neon
-- Serverless AI: Neon Functions + Microsoft Foundry-hosted model
-- External data source: Open-Meteo weather API
-- Deployment: Render
-- Tooling: Docker, Git
+The outfit recommendation function:
+
+- Reads the current wardrobe from PostgreSQL
+- Retrieves live weather from Open-Meteo
+- Generates an outfit recommendation using a Microsoft Foundry-hosted model
+- Returns the result in the user's selected language
 
 ## Architecture
 
 ```text
-┌───────────────────────────────────────┐
-│        Next.js / React UI             │
-└──────────────────────┬────────────────┘
-                       │ HTTPS / REST
-                       ▼
-┌───────────────────────────────────────┐
-│       Go API (inventory services)     │
-└──────────────────────┬────────────────┘
-                       │
-       ┌───────────────┼───────────────┐
-       │                               │
-       │                               │
-       │                               │
-       │                               │
-       │                               │
-       ▼                               ▼
-┌──────────────────────┐    ┌────────────────────────────────────┐
-│ /ai request path     │    │ Standard CRUD / inventory requests │
-└──────────┬───────────┘    └───────────────┬────────────────────┘
-           │                                │
-           │                                ▼
-           │              ┌───────────────────────────────────────┐
-           │              │       PostgreSQL (Neon Database)      │
-           │              └───────────────────────────────────────┘
-           ▼
-┌───────────────────────────────────────┐
-│         Neon Function                 │
-│   outfit recommendation endpoint      │
-└──────────────┬────────────────────────┘
-               │ reads inventory
-               ▼
-┌───────────────────────────────────────┐
-│       PostgreSQL (Neon Database)      │
-└──────────────────────┬────────────────┘
-                       │
-                       ├───────────────┐
-        reads weather  │               │ gets recommendation
-                       ▼               ▼
-           ┌──────────────────┐  ┌──────────────────────────┐
-           │ Open-Meteo API   │  │ Microsoft Foundry /      │
-           │ live weather     │  │ GPT 5-mini               │
-           └──────────────────┘  └──────────────────────────┘
+Next.js / React
+       │
+       │ HTTPS / REST
+       ▼
+    Go API
+       │
+   ┌───┴───────────────┐
+   │                   │
+   ▼                   ▼
+PostgreSQL        Neon Functions
+                    │
+              ┌─────┴─────┐
+              │           │
+              ▼           ▼
+        PostgreSQL    Microsoft Foundry
+                          │
+                          │
+                     Open-Meteo
+                     (outfit flow)
 ```
 
-The core application flow remains Go API to PostgreSQL for regular inventory operations. For AI-powered outfit requests, the Go API routes the request to a Neon Function, which queries the wardrobe data in PostgreSQL, fetches live weather from Open-Meteo, and then uses a Microsoft Foundry-hosted model to generate the recommendation.
+The Go API handles standard inventory CRUD operations and routes AI requests to Neon Functions. The functions access PostgreSQL and, for outfit recommendations, Open-Meteo weather data before calling the AI model.
+
+## Tech Stack
+
+- **Frontend:** Next.js, React, TypeScript
+- **Backend:** Go, Gin, REST API
+- **Database:** PostgreSQL, Neon
+- **AI:** Neon Functions, Microsoft Foundry
+- **Weather:** Open-Meteo API
+- **Deployment:** Render
+- **Tooling:** Docker, Git
 
 ## Project Structure
 
@@ -99,20 +95,21 @@ littlecloset/
 ├── backend/        # Go API
 ├── frontend/       # Next.js application
 ├── migrations/     # Database migrations
-├── neon/           # Neon Functions configuration and AI endpoint
+├── neon/           # Neon Functions
 ├── docker-compose.yml
 ├── README.md
 └── .env.example
 ```
 
-## Project Status
+## Status
 
-The application is currently in active development, with a focus on a stable inventory workflow and the continued expansion of AI-powered product features.
+Active development.
 
 ## Future Improvements
 
 - Multi-user support and child-specific profiles
-- Clothing image management
-- Inventory history and change tracking
-- Extended analytics and reporting
-- PWA support and offline functionality
+- Clothing image storage
+- Inventory history
+- Extended analytics
+- PWA and offline support
+- Additional AI clothing attributes
