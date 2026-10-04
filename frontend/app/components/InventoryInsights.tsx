@@ -215,11 +215,6 @@ export default function InventoryInsights({
                 : t.generateOutfit}
           </button>
         </div>
-        {generatingSuggestion ? (
-          <p role="status" className="mt-3 text-sm text-[#68746d]">
-            {t.generatingOutfit}
-          </p>
-        ) : null}
         {outfitError?.language === language ? (
           <p role="alert" className="mt-3 text-sm text-[#8c3928]">{t[outfitError.key]}</p>
         ) : null}
