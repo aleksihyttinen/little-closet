@@ -10,6 +10,9 @@ type AdminPanelProps = {
 export default function AdminPanel({ t, controller }: AdminPanelProps) {
   const {
     adminPanelRef,
+    analyzingClothing,
+    analysisPreview,
+    analyzeClothingImage,
     categories,
     sizes,
     form,
@@ -73,6 +76,77 @@ export default function AdminPanel({ t, controller }: AdminPanelProps) {
       </div>
 
       <div id="admin-tools-content" hidden={!panelExpanded}>
+        <div className="mb-6 border-b border-[#e1e5df] pb-6">
+          <div className="flex flex-col gap-4 rounded-lg border border-[#d6dbd3] bg-[#f8faf7] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[#34433b]">
+                {t.scanClothing}
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-[#718077]">
+                {t.scanClothingHint}
+              </p>
+            </div>
+
+            <label className="relative inline-flex min-h-11 shrink-0 cursor-pointer items-center justify-center rounded-md bg-[#315c4c] px-5 text-sm font-semibold text-white transition hover:bg-[#244738]">
+              {analyzingClothing
+                ? t.analyzingClothing
+                : t.takeOrChoosePhoto}
+
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                disabled={analyzingClothing}
+                className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+
+                  if (file) {
+                    void analyzeClothingImage(file);
+                  }
+
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </div>
+
+          {analysisPreview ? (
+            <div className="mt-4 flex items-center gap-3">
+              <img
+                src={analysisPreview}
+                alt=""
+                className="h-20 w-20 rounded-md border border-[#d6dbd3] object-cover"
+              />
+
+              <div className="min-w-0">
+                {analyzingClothing ? (
+                  <>
+                    <p className="text-sm font-medium text-[#34433b]">
+                      {t.analyzingClothing}
+                    </p>
+
+                    <p className="mt-1 text-xs text-[#718077]">
+                      {t.analyzingClothingHint}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-[#34433b]">
+                      {t.analysisComplete}
+                    </p>
+
+                    <p className="mt-1 text-xs text-[#718077]">
+                      {t.analysisCompleteHint}
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
         <form onSubmit={onSaveItem} className="mb-6 grid gap-4 border-b border-[#e1e5df] pb-6 sm:grid-cols-2 lg:grid-cols-5">
           <label className="text-sm font-medium text-[#45534b] lg:col-span-2">
             {t.itemName}

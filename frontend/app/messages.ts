@@ -108,6 +108,17 @@ export const messages = {
     noChartData: "Vaatekaapissa ei ole vielä dataa.",
     unitsLabel: "kpl",
     noRecentUpdates: "Vaatteita ei ole vielä päivitetty.",
+    scanClothing: "Tunnista vaate",
+    scanClothingHint:
+      "Ota kuva vaatteesta, niin tunnistamme sen nimen, koon ja kategorian.",
+    takeOrChoosePhoto: "Ota tai valitse kuva",
+    analyzingClothing: "Analysoidaan…",
+    analyzingClothingHint: "Tunnistetaan vaate, kokolappu ja kategoria.",
+    analysisComplete: "Tunnistus valmis",
+    analysisCompleteHint: "Tarkista alla olevat tiedot ennen tallentamista.",
+    sizeEstimated:
+      "Koko arvioitiin kuvan perusteella. Tarkista koko ennen tallentamista.",
+    analysisFailed: "Vaatteen tunnistaminen ei onnistunut.",
   },
 
   en: {
@@ -218,6 +229,17 @@ export const messages = {
     noChartData: "No clothing data yet.",
     unitsLabel: "items",
     noRecentUpdates: "No clothing items have been updated yet.",
+    scanClothing: "Scan clothing",
+    scanClothingHint:
+      "Take a photo of the clothing item and we'll detect its name, size and category.",
+    takeOrChoosePhoto: "Take or choose photo",
+    analyzingClothing: "Analyzing…",
+    analyzingClothingHint: "Reading the garment, tag and category.",
+    analysisComplete: "Analysis complete",
+    analysisCompleteHint: "Review the fields below before saving.",
+    sizeEstimated:
+      "The size was estimated from the image. Please verify it before saving.",
+    analysisFailed: "Failed to analyze the clothing item.",
   },
 } as const;
 

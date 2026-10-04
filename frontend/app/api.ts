@@ -26,7 +26,10 @@ export async function apiRequest(
   options: RequestInit = {},
 ): Promise<ApiResponse> {
   const headers = new Headers(options.headers);
-  if (options.body) headers.set("Content-Type", "application/json");
+
+  if (options.body && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -35,14 +38,17 @@ export async function apiRequest(
   });
 
   let data: ApiResponse = {};
+
   try {
     data = (await response.json()) as ApiResponse;
   } catch {
-    // Some successful API responses do not include a response body.
   }
 
   if (!response.ok) {
-    throw new ApiError(data.error ?? `Request failed (${response.status})`, response.status);
+    throw new ApiError(
+      data.error ?? `Request failed (${response.status})`,
+      response.status,
+    );
   }
 
   return data;

@@ -124,6 +124,7 @@ export default function Home() {
   }, []);
 
   const admin = useAdminPanel({
+    language,
     signedIn,
     t,
     setError: showError,

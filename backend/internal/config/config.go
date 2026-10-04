@@ -8,10 +8,11 @@ import (
 )
 
 type Config struct {
-	DatabaseURL     string
-	FrontendURL     string
-	HTTPAddr        string
-	NeonFunctionURL string
+	DatabaseURL                   string
+	FrontendURL                   string
+	HTTPAddr                      string
+	NeonGenerateOutfitFunctionURL string
+	NeonAnalyzeImageFunctionURL   string
 }
 
 func Load() Config {
@@ -34,16 +35,22 @@ func Load() Config {
 		frontendURL = "http://localhost:3000"
 	}
 
-	neonFunctionURL := os.Getenv("NEON_FUNCTION_URL")
-	if neonFunctionURL == "" {
-		log.Fatal("NEON_FUNCTION_URL is not set")
+	neonGenerateOutfitFunctionURL := os.Getenv("NEON_GENERATE_OUTFIT_FUNCTION_URL")
+	if neonGenerateOutfitFunctionURL == "" {
+		log.Fatal("NEON_GENERATE_OUTFIT_FUNCTION_URL is not set")
+	}
+
+	neonAnalyzeImageFunctionURL := os.Getenv("NEON_ANALYZE_IMAGE_FUNCTION_URL")
+	if neonAnalyzeImageFunctionURL == "" {
+		log.Fatal("NEON_ANALYZE_IMAGE_FUNCTION_URL is not set")
 	}
 
 	return Config{
-		DatabaseURL:     databaseURL,
-		HTTPAddr:        httpAddr,
-		FrontendURL:     frontendURL,
-		NeonFunctionURL: neonFunctionURL,
+		DatabaseURL:                   databaseURL,
+		HTTPAddr:                      httpAddr,
+		FrontendURL:                   frontendURL,
+		NeonGenerateOutfitFunctionURL: neonGenerateOutfitFunctionURL,
+		NeonAnalyzeImageFunctionURL:   neonAnalyzeImageFunctionURL,
 	}
 }
 

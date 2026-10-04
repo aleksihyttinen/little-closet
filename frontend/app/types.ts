@@ -9,7 +9,8 @@ export type NoticeKey =
   | "categoryUpdated"
   | "sizeUpdated"
   | "categoryDeleted"
-  | "sizeDeleted";
+  | "sizeDeleted"
+  | "sizeEstimated";
 
 export type ErrorKey =
   | "loadError"
@@ -20,7 +21,8 @@ export type ErrorKey =
   | "sessionExpired"
   | "notFound"
   | "referenceInUse"
-  | "serverError";
+  | "serverError"
+  | "analysisFailed";
 
 export type ClothingItem = {
   id: string;

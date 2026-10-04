@@ -5,15 +5,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	db "little-closet/db/generated"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"time"
 )
 
 type Service struct {
-	queries         *db.Queries
-	httpClient      *http.Client
-	neonFunctionURL string
+	queries                       *db.Queries
+	httpClient                    *http.Client
+	neonGenerateOutfitFunctionURL string
+	neonAnalyzeImageFunctionURL   string
 }
 
 type generateOutfitResponse struct {
@@ -26,11 +30,30 @@ type GenerateOutfitResult struct {
 	Weather json.RawMessage
 }
 
-func NewService(queries *db.Queries, httpClient *http.Client, neonFunctionURL string) *Service {
+type AnalyzeImageResult struct {
+	Name       string               `json:"name"`
+	SizeSource string               `json:"size_source"`
+	Size       AnalyzeImageSize     `json:"size"`
+	Category   AnalyzeImageCategory `json:"category"`
+}
+
+type AnalyzeImageSize struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type AnalyzeImageCategory struct {
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	ParentID *string `json:"parent_id"`
+}
+
+func NewService(queries *db.Queries, httpClient *http.Client, neonGenerateOutfitFunctionURL string, neonAnalyzeImageFunctionURL string) *Service {
 	return &Service{
-		queries:         queries,
-		httpClient:      httpClient,
-		neonFunctionURL: neonFunctionURL,
+		queries:                       queries,
+		httpClient:                    httpClient,
+		neonGenerateOutfitFunctionURL: neonGenerateOutfitFunctionURL,
+		neonAnalyzeImageFunctionURL:   neonAnalyzeImageFunctionURL,
 	}
 }
 
@@ -86,7 +109,7 @@ func (s *Service) GenerateOutfit(
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		s.neonFunctionURL,
+		s.neonGenerateOutfitFunctionURL,
 		bytes.NewReader(body),
 	)
 	if err != nil {
@@ -118,4 +141,73 @@ func (s *Service) GenerateOutfit(
 		Outfit:  result.Outfit,
 		Weather: result.Weather,
 	}, nil
+}
+
+func (s *Service) AnalyzeImage(
+	ctx context.Context,
+	arg analyzeImageRequest,
+) (AnalyzeImageResult, error) {
+	var body bytes.Buffer
+
+	writer := multipart.NewWriter(&body)
+
+	if err := writer.WriteField("language", arg.Language); err != nil {
+		return AnalyzeImageResult{}, err
+	}
+
+	header := make(textproto.MIMEHeader)
+	header.Set(
+		"Content-Disposition",
+		`form-data; name="image"; filename="clothing.jpg"`,
+	)
+	header.Set("Content-Type", "image/jpeg")
+
+	part, err := writer.CreatePart(header)
+	if err != nil {
+		return AnalyzeImageResult{}, err
+	}
+
+	if _, err := part.Write(arg.Image); err != nil {
+		return AnalyzeImageResult{}, err
+	}
+
+	if err := writer.Close(); err != nil {
+		return AnalyzeImageResult{}, err
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		s.neonAnalyzeImageFunctionURL,
+		&body,
+	)
+	if err != nil {
+		return AnalyzeImageResult{}, err
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return AnalyzeImageResult{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		responseBody, _ := io.ReadAll(resp.Body)
+
+		return AnalyzeImageResult{}, fmt.Errorf(
+			"neon function returned status %d: %s",
+			resp.StatusCode,
+			string(responseBody),
+		)
+	}
+
+	var result AnalyzeImageResult
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return AnalyzeImageResult{}, err
+	}
+
+	return result, nil
 }

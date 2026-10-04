@@ -3,6 +3,7 @@ package ai
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"math"
 	"net/http"
 
@@ -25,6 +26,11 @@ type generateOutfitRequest struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	Language  string  `json:"language"`
+}
+
+type analyzeImageRequest struct {
+	Image    []byte `json:"image"`
+	Language string `json:"language"`
 }
 
 func (h *Handler) GenerateOutfit(c *gin.Context) {
@@ -138,4 +144,70 @@ func (h *Handler) GenerateOutfit(c *gin.Context) {
 
 func roundCoordinate(value float64) float64 {
 	return math.Round(value*10) / 10
+}
+
+func (h *Handler) AnalyzeImage(c *gin.Context) {
+	language := c.PostForm("language")
+
+	if language != "en" && language != "fi" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "language must be en or fi",
+		})
+		return
+	}
+
+	file, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "missing image",
+		})
+		return
+	}
+
+	image, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to open image",
+		})
+		return
+	}
+	defer image.Close()
+
+	imageBytes, err := io.ReadAll(image)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to read image",
+		})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	result, err := h.service.AnalyzeImage(
+		ctx,
+		analyzeImageRequest{
+			Image:    imageBytes,
+			Language: language,
+		},
+	)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error": "failed to analyze image",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"name":        result.Name,
+		"size_source": result.SizeSource,
+		"size": gin.H{
+			"id":   result.Size.ID,
+			"name": result.Size.Name,
+		},
+		"category": gin.H{
+			"id":        result.Category.ID,
+			"name":      result.Category.Name,
+			"parent_id": result.Category.ParentID,
+		},
+	})
 }

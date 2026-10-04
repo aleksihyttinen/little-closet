@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { apiRequest, fetchCategories, fetchSizes } from "../api";
+import { analyzeClothing } from "../lib/analyzeClothing";
 import type { Messages } from "../messages";
 import type {
   CategoryOption,
@@ -14,6 +15,7 @@ type ReferenceKind = "category" | "size" | null;
 type ReferenceEdit = { kind: "category" | "size"; id: string } | null;
 
 type UseAdminPanelOptions = {
+  language: 'en' | 'fi'
   signedIn: boolean;
   t: Messages;
   setError: Dispatch<SetStateAction<ErrorKey | "">>;
@@ -31,6 +33,7 @@ const createEmptyForm = (categoryId = "", sizeId = ""): ClothingForm => ({
 });
 
 export function useAdminPanel({
+  language,
   signedIn,
   t,
   setError,
@@ -39,6 +42,9 @@ export function useAdminPanel({
   handleApiError,
   refreshItems,
 }: UseAdminPanelOptions) {
+  const adminPanelRef = useRef<HTMLDivElement>(null);
+  const [analyzingClothing, setAnalyzingClothing] = useState(false);
+  const [analysisPreview, setAnalysisPreview] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [sizes, setSizes] = useState<SizeOption[]>([]);
   const [form, setForm] = useState<ClothingForm>(createEmptyForm());
@@ -58,7 +64,7 @@ export function useAdminPanel({
   const [savingReferenceId, setSavingReferenceId] = useState<string | null>(null);
   const [referencesLoading, setReferencesLoading] = useState(true);
   const sizeOrderValue = newSizeOrder ?? getNextSizeOrder(sizes);
-  const adminPanelRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     let active = true;
 
@@ -98,6 +104,35 @@ export function useAdminPanel({
       block: "start",
     });
   }, [editingId, panelExpanded]);
+
+  const analyzeClothingImage = async (file: File) => {
+    setAnalyzingClothing(true);
+    setNotice("");
+    setError("");
+
+    const preview = URL.createObjectURL(file);
+    setAnalysisPreview(preview);
+
+    try {
+      const result = await analyzeClothing(file, language);
+
+      if (result.size_source === "estimated") {
+        setNotice("sizeEstimated");
+      }
+
+      setForm((current) => ({
+        ...current,
+        name: result.name,
+        category_id: result.category.id,
+        size_id: result.size.id,
+      }));
+
+    } catch (error) {
+      setError("analysisFailed");
+    } finally {
+      setAnalyzingClothing(false);
+    }
+  };
 
   const refreshReferenceData = async () => {
     const [nextCategories, nextSizes] = await Promise.all([
@@ -454,6 +489,9 @@ export function useAdminPanel({
 
   return {
     adminPanelRef,
+    analyzingClothing,
+    analysisPreview,
+    analyzeClothingImage,
     categories,
     sizes,
     form,

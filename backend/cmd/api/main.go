@@ -51,7 +51,7 @@ func main() {
 	clothingService := clothing.NewService(queries)
 	clothingHandler := clothing.NewHandler(clothingService)
 
-	aiService := ai.NewService(queries, httpClient, cfg.NeonFunctionURL)
+	aiService := ai.NewService(queries, httpClient, cfg.NeonGenerateOutfitFunctionURL, cfg.NeonAnalyzeImageFunctionURL)
 	aiHandler := ai.NewHandler(aiService)
 
 	api := router.Group("/api/v1")
@@ -67,6 +67,8 @@ func main() {
 
 	protected := api.Group("")
 	protected.Use(authHandler.AuthMiddleware())
+
+	protected.POST("/ai/analyze-image", aiHandler.AnalyzeImage)
 
 	protected.POST("/clothing", clothingHandler.Create)
 	protected.PUT("/clothing/:id", clothingHandler.Update)
