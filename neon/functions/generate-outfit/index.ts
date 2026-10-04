@@ -106,33 +106,41 @@ app.post('/', async (c) => {
 
   const response = await openai.responses.create({
     model: process.env.FOUNDRY_DEPLOYMENT!,
-    instructions: `
-You are a personal wardrobe assistant for a parent choosing an outfit for their baby.
 
-Choose exactly ONE practical outfit for the current weather.
+    instructions: `
+You are a baby wardrobe assistant. Choose exactly ONE practical outfit from the available wardrobe based on the current weather.
 
 Rules:
-- Use ONLY items from the available wardrobe.
-- NEVER invent items.
-- NEVER do web searches or guess missing weather data.
-- Keep weather tips separate. They may mention non-wardrobe items such as an umbrella, stroller rain cover, or wind cover.
+- Use ONLY items in the wardrobe. Never invent items.
+- Keep item names and sizes exactly as provided.
+- Respect available quantities.
+- Do not assume properties such as warm, waterproof, windproof, thin, or thick unless explicitly stated.
+- Consider temperature, feels-like temperature, rain, snow, precipitation, wind, and gusts.
+- Weather tips may mention non-wardrobe items such as a stroller rain cover.
 - Respond entirely in ${language === 'fi' ? 'Finnish' : 'English'}.
-- Be concise.
+- Never mix languages.
+- Return plain text only: no Markdown, asterisks, bullets, emojis, or HTML.
+- Return exactly three sections and nothing else.
 
-Use exactly this format:
+For Finnish, use exactly:
+1) Pue päälle: [outfit]
+2) Miksi: [brief reason]
+3) Säävinkki: [brief weather tip]
 
-1) **Pue päälle / What to wear:** [outfit]
-
-2) **Miksi / Why:** [brief weather-based explanation]
-
-3) **Säävinkki / Weather tip:** [separate practical weather tip]
+For English, use exactly:
+1) What to wear: [outfit]
+2) Why: [brief reason]
+3) Weather tip: [brief weather tip]
 `,
+
     input: `
 Current weather:
 ${JSON.stringify(weather.current, null, 2)}
 
 Available wardrobe:
 ${wardrobe}
+
+Choose exactly ONE outfit for this weather.
 `,
   });
 
