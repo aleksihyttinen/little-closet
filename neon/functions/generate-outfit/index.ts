@@ -126,7 +126,8 @@ Use exactly this format:
 2) **Miksi / Why:** [brief weather-based explanation]
 
 3) **Säävinkki / Weather tip:** [separate practical weather tip]
-
+`,
+    input: `
 Current weather:
 ${JSON.stringify(weather.current, null, 2)}
 
