@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -115,49 +115,49 @@ export default function InventoryInsights({
   const locationRequest = useRef<Promise<Coordinates> | null>(null);
   const [suggestion, setSuggestion] = useState<OutfitSuggestion | null>(null);
   const [suggestionOpen, setSuggestionOpen] = useState(false);
+  const [generatingSuggestion, setGeneratingSuggestion] = useState(false);
+  const generatingSuggestionRef = useRef(false);
   const [outfitError, setOutfitError] = useState<{
     key: OutfitErrorKey;
     language: Language;
   } | null>(null);
 
-  useEffect(() => {
-    let active = true;
+  const generateWeatherOutfit = async () => {
+    if (generatingSuggestionRef.current) return;
+    if (suggestion?.language === language) {
+      setSuggestionOpen((open) => !open);
+      return;
+    }
 
-    const loadOutfit = async () => {
-      try {
-        const location = coordinates.current ?? await (
-          locationRequest.current ??= getBrowserLocation()
-        );
-        if (!active) return;
-        coordinates.current = location;
-        locationRequest.current = null;
+    generatingSuggestionRef.current = true;
+    setGeneratingSuggestion(true);
+    setOutfitError(null);
 
-        const result = await generateOutfit(
-          location.latitude,
-          location.longitude,
-          language,
-        );
-        if (active) {
-          setSuggestion({ ...result, language });
-          setSuggestionOpen(false);
-          setOutfitError(null);
-        }
-      } catch (error) {
-        if (active) {
-          if (!coordinates.current) locationRequest.current = null;
-          setOutfitError({
-            key: isLocationErrorKey(error) ? error : "weatherOutfitError",
-            language,
-          });
-        }
-      }
-    };
+    try {
+      const location = coordinates.current ?? await (
+        locationRequest.current ??= getBrowserLocation()
+      );
+      coordinates.current = location;
+      locationRequest.current = null;
 
-    void loadOutfit();
-    return () => {
-      active = false;
-    };
-  }, [language]);
+      const result = await generateOutfit(
+        location.latitude,
+        location.longitude,
+        language,
+      );
+      setSuggestion({ ...result, language });
+      setSuggestionOpen(true);
+    } catch (error) {
+      if (!coordinates.current) locationRequest.current = null;
+      setOutfitError({
+        key: isLocationErrorKey(error) ? error : "weatherOutfitError",
+        language,
+      });
+    } finally {
+      generatingSuggestionRef.current = false;
+      setGeneratingSuggestion(false);
+    }
+  };
 
   const categoryTotals = new Map<string, UnitData>();
   for (const item of items) {
@@ -197,57 +197,65 @@ export default function InventoryInsights({
       <h2 id="inventory-insights-title" className="mb-5 text-lg font-semibold text-[#293730]">
         {t.inventoryInsights}
       </h2>
-      <div className="mb-7 border-b border-[#e1e5df] pb-5">
-        <h3 className="text-sm font-semibold text-[#45534b]">{t.weatherOutfitTitle}</h3>
+      <div className="mb-7 border border-[#d6dbd3] bg-white p-5 shadow-[0_8px_24px_rgba(35,53,43,0.04)] sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold">{t.weatherOutfitTitle}</h3>
+          <button
+            type="button"
+            aria-expanded={suggestion?.language === language && suggestionOpen}
+            aria-controls={suggestion?.language === language ? "weather-outfit-content" : undefined}
+            disabled={generatingSuggestion}
+            onClick={() => void generateWeatherOutfit()}
+            className="min-h-10 rounded-md border border-[#cbd3ca] px-3 text-sm font-semibold text-[#45534b] transition hover:bg-[#f4f6f1] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {generatingSuggestion
+              ? t.generatingOutfit
+              : suggestion?.language === language
+                ? suggestionOpen ? t.hideWeatherOutfit : t.showWeatherOutfit
+                : t.generateOutfit}
+          </button>
+        </div>
+        {generatingSuggestion ? (
+          <p role="status" className="mt-3 text-sm text-[#68746d]">
+            {t.generatingOutfit}
+          </p>
+        ) : null}
         {outfitError?.language === language ? (
           <p role="alert" className="mt-3 text-sm text-[#8c3928]">{t[outfitError.key]}</p>
         ) : null}
-        {!suggestion || suggestion.language !== language ? (
-          !outfitError || outfitError.language !== language ? (
-            <p role="status" className="mt-3 text-sm text-[#68746d]">
-              {t.loadingWeatherOutfit}
-            </p>
-          ) : null
-        ) : (
-          <div className="mt-4" aria-live="polite">
-            <div className="border-l-2 border-[#94adb0] bg-white/70 px-4 py-3">
+        {suggestion?.language === language ? (
+          <div
+            id="weather-outfit-content"
+            hidden={!suggestionOpen}
+            aria-live="polite"
+            className="mt-5 border-t border-[#e1e5df] pt-4"
+          >
+            <div className="rounded-md border border-[#d8e2da] bg-[#f4f7f2] p-4">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-[#65716b]">
                 {t.currentWeather}
               </h4>
-              <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#34433b]">
-                <span>
-                  {numberFormat.format(suggestion.weather.current.temperature_2m)} °C
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <span className="text-2xl font-semibold tabular-nums text-[#315c4c]">
+                {numberFormat.format(suggestion.weather.current.temperature_2m)} °C
                 </span>
-                <span>
-                  {t.feelsLike} {numberFormat.format(suggestion.weather.current.apparent_temperature)} °C
-                </span>
-                <span>
-                  {t.wind} {numberFormat.format(suggestion.weather.current.wind_speed_10m)} km/h
-                </span>
-                <span>
-                  {t.precipitation} {numberFormat.format(suggestion.weather.current.precipitation)} mm
-                </span>
-              </p>
+                <div className="flex flex-wrap gap-2 text-xs text-[#45534b]">
+                  <span className="rounded-full border border-[#d6dbd3] bg-white px-2.5 py-1">
+                    {t.feelsLike} {numberFormat.format(suggestion.weather.current.apparent_temperature)} °C
+                  </span>
+                  <span className="rounded-full border border-[#d6dbd3] bg-white px-2.5 py-1">
+                    {t.wind} {numberFormat.format(suggestion.weather.current.wind_speed_10m)} km/h
+                  </span>
+                  <span className="rounded-full border border-[#d6dbd3] bg-white px-2.5 py-1">
+                    {t.precipitation} {numberFormat.format(suggestion.weather.current.precipitation)} mm
+                  </span>
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              aria-expanded={suggestionOpen}
-              aria-controls="weather-outfit-suggestion"
-              onClick={() => setSuggestionOpen((open) => !open)}
-              className="mt-3 min-h-10 rounded-md border border-[#cbd3ca] bg-white px-4 text-sm font-semibold text-[#315c4c] transition hover:bg-[#f4f6f1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315c4c]"
-            >
-              {suggestionOpen ? t.hideOutfitSuggestion : t.showOutfitSuggestion}
-            </button>
-            {suggestionOpen ? (
-              <p
-                id="weather-outfit-suggestion"
-                className="mt-4 whitespace-pre-line text-sm leading-6 text-[#34433b]"
-              >
-                {suggestion.outfit}
-              </p>
-            ) : null}
+            <p className="mt-4 whitespace-pre-line text-sm leading-6 text-[#34433b]">
+              {suggestion.outfit}
+            </p>
           </div>
-        )}
+        ) : null}
       </div>
       <div className="grid gap-7 lg:grid-cols-3 lg:gap-0">
         <section className="min-w-0 lg:pr-6">
@@ -258,8 +266,13 @@ export default function InventoryInsights({
             <p className="py-12 text-center text-sm text-[#68746d]">{t.noChartData}</p>
           ) : (
             <>
-              <div className="h-60 w-full">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-60 w-full min-w-0">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                  minWidth={1}
+                  initialDimension={{ width: 320, height: 240 }}
+                >
                   <PieChart accessibilityLayer>
                     <Pie
                       data={categoryData}

@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+} from "react";
 import { ApiError, apiRequest, fetchClothingItems } from "./api";
 import { messages, type Language } from "./messages";
 import AdminPanel from "./components/AdminPanel";
@@ -45,7 +53,29 @@ export default function Home() {
   const [signedIn, setSignedIn] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
+  const signingInRef = useRef(false);
   const t = messages[language];
+
+  const showError: Dispatch<SetStateAction<ErrorKey | "">> = (nextError) => {
+    setError(nextError);
+    setNotice("");
+  };
+  const showNotice: Dispatch<SetStateAction<NoticeKey | "">> = (nextNotice) => {
+    setNotice(nextNotice);
+    setError("");
+  };
+
+  useEffect(() => {
+    if (!error && !notice) return;
+
+    const timeout = window.setTimeout(() => {
+      setError("");
+      setNotice("");
+    }, 7000);
+
+    return () => window.clearTimeout(timeout);
+  }, [error, notice]);
 
   const refreshItems = async () => {
     setItems(await fetchClothingItems());
@@ -69,7 +99,7 @@ export default function Home() {
                 : requestError instanceof ApiError
                   ? "requestFailed"
                   : "connectionError";
-    setError(errorKey);
+    showError(errorKey);
     if (status === 401 && !loginFailure) {
       setSignedIn(false);
       setLoginOpen(true);
@@ -79,8 +109,8 @@ export default function Home() {
   const admin = useAdminPanel({
     signedIn,
     t,
-    setError,
-    setNotice,
+    setError: showError,
+    setNotice: showNotice,
     openLogin: () => setLoginOpen(true),
     handleApiError,
     refreshItems,
@@ -123,7 +153,7 @@ export default function Home() {
         setItems(loadedItems);
       } catch {
         if (active) {
-          setError("loadError");
+          showError("loadError");
         }
       } finally {
         if (active) setLoading(false);
@@ -146,7 +176,11 @@ export default function Home() {
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError("");
+    if (signingInRef.current) return;
+
+    signingInRef.current = true;
+    setSigningIn(true);
+    showError("");
 
     try {
       await apiRequest("/auth/login", {
@@ -156,40 +190,79 @@ export default function Home() {
       setSignedIn(true);
       setPassword("");
       setLoginOpen(false);
-      setNotice("signedInNotice");
+      showNotice("signedInNotice");
     } catch (requestError) {
       const status = requestError instanceof ApiError ? requestError.status : 0;
 
       if (status !== 401) {
-        setError("serverError");
+        showError("serverError");
       }
       handleApiError(requestError, true);
+    } finally {
+      signingInRef.current = false;
+      setSigningIn(false);
     }
   };
 
   const handleLogout = async () => {
-    setError("");
+    showError("");
     setLoginOpen(false);
 
     try {
       await apiRequest("/auth/logout", {
         method: "POST",
       });
+      showNotice("signedOutNotice");
     } catch (requestError) {
       const status = requestError instanceof ApiError ? requestError.status : 0;
 
       if (status !== 401) {
-        setError("serverError");
+        showError("serverError");
       }
       handleApiError(requestError, true);
     } finally {
       setSignedIn(false);
-      setNotice("signedOutNotice");
     }
   };
 
   return (
     <main className="min-h-screen bg-[#f4f3ed] px-4 py-6 text-[#202a27] sm:px-8 sm:py-10">
+      {error || notice ? (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-3 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
+          {error ? (
+            <div
+              role="alert"
+              className="pointer-events-auto flex w-full max-w-xl items-start justify-between gap-4 border border-[#d99a8d] border-l-4 border-l-[#a83d2b] bg-[#fff3ef] px-4 py-3 text-sm text-[#7e2f22] shadow-[0_10px_35px_rgba(49,38,32,0.22)]"
+            >
+              <p className="font-medium">{t[error]}</p>
+              <button
+                type="button"
+                onClick={() => setError("")}
+                aria-label={t.close}
+                className="shrink-0 rounded px-1 font-semibold text-[#7e2f22] hover:bg-[#f8ded7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7e2f22]"
+              >
+                {t.close}
+              </button>
+            </div>
+          ) : null}
+          {notice ? (
+            <div
+              role="status"
+              className="pointer-events-auto flex w-full max-w-xl items-start justify-between gap-4 border border-[#a9c5ad] border-l-4 border-l-[#315c4c] bg-[#edf6ee] px-4 py-3 text-sm text-[#294d3e] shadow-[0_10px_35px_rgba(49,38,32,0.22)]"
+            >
+              <p className="font-medium">{t[notice]}</p>
+              <button
+                type="button"
+                onClick={() => setNotice("")}
+                aria-label={t.close}
+                className="shrink-0 rounded px-1 font-semibold text-[#294d3e] hover:bg-[#dcebdd] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315c4c]"
+              >
+                {t.close}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="mx-auto max-w-6xl">
         <DashboardHeader
           t={t}
@@ -201,7 +274,7 @@ export default function Home() {
           onLanguageChange={changeLanguage}
           onLogout={() => void handleLogout()}
           onSignIn={() => {
-            setError("");
+            showError("");
             setLoginOpen(true);
           }}
         />
@@ -215,23 +288,6 @@ export default function Home() {
           getCategoryName={admin.getCategoryName}
           getSizeName={admin.getSizeName}
         />
-
-        {error ? (
-          <p
-            role="alert"
-            className="mb-4 border border-[#e0b9ae] bg-[#fff3ef] px-4 py-3 text-sm text-[#8c3928]"
-          >
-            {t[error]}
-          </p>
-        ) : null}
-        {notice ? (
-          <p
-            role="status"
-            className="mb-4 border border-[#b8d0bd] bg-[#edf6ee] px-4 py-3 text-sm text-[#315c4c]"
-          >
-            {t[notice]}
-          </p>
-        ) : null}
 
         {sessionLoading ? (
           <section role="status" className="mb-8 border border-[#d6dbd3] bg-white p-5 text-sm text-[#68746d]">
@@ -275,6 +331,7 @@ export default function Home() {
         <LoginDialog
           t={t}
           email={email}
+          signingIn={signingIn}
           password={password}
           onEmailChange={setEmail}
           onPasswordChange={setPassword}

@@ -7,6 +7,7 @@ type LoginDialogProps = {
   t: Messages;
   email: string;
   password: string;
+  signingIn: boolean;
   onEmailChange: (email: string) => void;
   onPasswordChange: (password: string) => void;
   onClose: () => void;
@@ -17,6 +18,7 @@ export default function LoginDialog({
   t,
   email,
   password,
+  signingIn,
   onEmailChange,
   onPasswordChange,
   onClose,
@@ -41,6 +43,7 @@ export default function LoginDialog({
           </div>
           <button
             type="button"
+            disabled={signingIn}
             onClick={onClose}
             aria-label={t.close}
             className="rounded-md border border-[#cbd3ca] px-3 py-1.5 text-sm text-[#45534b] hover:bg-[#f4f6f1]"
@@ -48,12 +51,13 @@ export default function LoginDialog({
             {t.close}
           </button>
         </div>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} aria-busy={signingIn} className="space-y-4">
           <label className="block text-sm font-medium text-[#45534b]">
             {t.email}
             <input
               required
               type="email"
+              disabled={signingIn}
               autoComplete="username"
               value={email}
               onChange={(event) => onEmailChange(event.target.value)}
@@ -65,6 +69,7 @@ export default function LoginDialog({
             <input
               required
               type="password"
+              disabled={signingIn}
               autoComplete="current-password"
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
@@ -73,9 +78,18 @@ export default function LoginDialog({
           </label>
           <button
             type="submit"
-            className="min-h-11 w-full rounded-md bg-[#315c4c] px-4 text-sm font-semibold text-white transition hover:bg-[#244738]"
+            disabled={signingIn}
+            className="min-h-11 w-full rounded-md bg-[#315c4c] px-4 text-sm font-semibold text-white transition hover:bg-[#244738] disabled:cursor-not-allowed disabled:opacity-65"
           >
-            {t.signIn}
+            {signingIn ? (
+              <span className="inline-flex items-center justify-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                />
+                {t.signingIn}
+              </span>
+            ) : t.signIn}
           </button>
         </form>
       </section>
