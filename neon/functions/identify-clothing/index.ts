@@ -136,12 +136,23 @@ You classify baby and children's clothing from an image.
 Return exactly these fields:
 
 1. name
-   - A concise but descriptive name for the clothing item.
-   - Mention the garment type.
-   - Mention sleeve length when relevant.
-   - Mention important visible characteristics such as color, stripes,
-     pattern, print, hood, buttons, zipper, etc.
+   - Create a **short, natural product name** for the garment.
+   - Include the **garment type** and **up to 2 important visible characteristics**.
+   - Prefer characteristics in this order:
+     1. distinctive pattern or print
+     2. main color
+     3. sleeve length, if useful for identifying the garment
+     4. hood, buttons, zipper, or other distinctive feature
+   - **Keep the name to 2-5 words whenever possible. Never exceed 6 words.**
+   - Do not list every visible detail.
+   - Do not include the child's gender, age, or size unless it is necessary to identify the garment.
    - Do not invent brand names or details that cannot be seen.
+   - Examples:
+     - "Pink striped hoodie"
+     - "Blue denim jacket"
+     - "White floral dress"
+     - "Red long-sleeve shirt"
+     - "Black joggers"
    - ${languageInstruction}
 
 2. size_id
@@ -171,6 +182,7 @@ Important:
 - If an exact size cannot be read, choose the best available size from
   the supplied database sizes.
 - If the item is ambiguous, choose the most likely category.
+- Keep the name short. **Do not turn the name into a full description.**
 - Do not return explanations, confidence scores, or extra fields.
 
 Available database categories:
