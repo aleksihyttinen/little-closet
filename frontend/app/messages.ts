@@ -119,6 +119,17 @@ export const messages = {
     sizeEstimated:
       "Koko arvioitiin kuvan perusteella. Tarkista koko ennen tallentamista.",
     analysisFailed: "Vaatteen tunnistaminen ei onnistunut.",
+    dashboard: "Pääsivu",
+    inventory: "Vaatekaappi",
+    user: "Käyttäjä",
+    quickActions: "Pika-toiminnot",
+    addNewItem: "Lisää uusi vaate",
+    addItemDescription: "Lisää uusi vaate vaatekaapin hallintajärjestelmään.",
+    userManagement: "Käyttäjän hallinta",
+    currentUser: "Nykyinen käyttäjä",
+    userManagementComingSoon: "Monenkäyttäjän tuki tulee pian. Tällä hetkellä vain ylläpitäjä on käytettävissä.",
+    adminUser: "Ylläpitäjä",
+    adminUserDescription: "Olet kirjautuneena ylläpitäjänä, jolla on täydet oikeudet vaatekaapin hallintajärjestelmään.",
   },
 
   en: {
@@ -240,6 +251,17 @@ export const messages = {
     sizeEstimated:
       "The size was estimated from the image. Please verify it before saving.",
     analysisFailed: "Failed to analyze the clothing item.",
+    dashboard: "Dashboard",
+    inventory: "Inventory",
+    user: "User",
+    quickActions: "Quick Actions",
+    addNewItem: "Add New Item",
+    addItemDescription: "Add a new clothing item to your inventory",
+    userManagement: "User Management",
+    currentUser: "Current User",
+    userManagementComingSoon: "Multi-user support is coming soon. Currently, only the admin user is available.",
+    adminUser: "Admin User",
+    adminUserDescription: "You are logged in as the admin user with full access to the inventory management system.",
   },
 } as const;
 

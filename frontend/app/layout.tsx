@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from './ServiceWorkerRegistration'
@@ -16,7 +16,22 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Little Closet",
   description: "Manage your childs clothes",
+  appleWebApp: {
+    capable: true,
+    title: "Little Closet",
+    statusBarStyle: "black-translucent",
+  },
+
+  icons: {
+    apple: "/apple-icon-180.png",
+  },
 };
+
+export const viewport: Viewport = {
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -25,13 +40,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link
-          rel="apple-touch-icon"
-          href="/apple-icon-180.png"
-        />
-
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
 
         <link
           rel="apple-touch-startup-image"

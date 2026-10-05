@@ -20,6 +20,7 @@ import type { ClothingItem, OutfitWeather, SizeOption } from "../types";
 type InventoryInsightsProps = {
   items: ClothingItem[];
   sizes: SizeOption[];
+  totalUnits: number;
   language: Language;
   loading: boolean;
   t: Messages;
@@ -99,6 +100,7 @@ function isLocationErrorKey(error: unknown): error is LocationErrorKey {
 export default function InventoryInsights({
   items,
   sizes,
+  totalUnits,
   language,
   loading,
   t,
@@ -193,7 +195,7 @@ export default function InventoryInsights({
     `${numberFormat.format(Number(value ?? 0))} ${t.unitsLabel}`;
 
   return (
-    <section className="mb-8 border-y border-[#cdd4cd] py-5" aria-labelledby="inventory-insights-title">
+    <section aria-labelledby="inventory-insights-title">
       <h2 id="inventory-insights-title" className="mb-5 text-lg font-semibold text-[#293730]">
         {t.inventoryInsights}
       </h2>
@@ -231,7 +233,7 @@ export default function InventoryInsights({
               </h4>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <span className="text-2xl font-semibold tabular-nums text-[#315c4c]">
-                {numberFormat.format(suggestion.weather.current.temperature_2m)} °C
+                  {numberFormat.format(suggestion.weather.current.temperature_2m)} °C
                 </span>
                 <div className="flex flex-wrap gap-2 text-xs text-[#45534b]">
                   <span className="rounded-full border border-[#d6dbd3] bg-white px-2.5 py-1">
@@ -252,6 +254,23 @@ export default function InventoryInsights({
           </div>
         ) : null}
       </div>
+      <section className="mb-8 border-y border-[#cdd4cd] py-5">
+        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          <div className="border-l-2 border-[#a9bd8b] bg-white/70 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#65716b]">{t.piecesInCloset}</p>
+            <p className="mt-1 text-2xl font-semibold">{totalUnits}</p>
+          </div>
+          <div className="border-l-2 border-[#d7a45b] bg-white/70 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#65716b]">{t.differentItems}</p>
+            <p className="mt-1 text-2xl font-semibold">{items.length}</p>
+          </div>
+          <div className="border-l-2 border-[#94adb0] bg-white/70 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#65716b]">{t.categories}</p>
+            <p className="mt-1 text-2xl font-semibold">
+              {new Set(items.map((item) => item.category_id)).size}
+            </p>
+          </div>
+        </div></section>
       <div className="grid gap-7 lg:grid-cols-3 lg:gap-0">
         <section className="min-w-0 lg:pr-6">
           <h3 className="mb-3 text-sm font-semibold text-[#45534b]">{t.unitsByCategory}</h3>

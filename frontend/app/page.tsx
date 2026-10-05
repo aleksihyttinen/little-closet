@@ -12,11 +12,12 @@ import {
 } from "react";
 import { ApiError, apiRequest, fetchClothingItems } from "./api";
 import { messages, type Language } from "./messages";
-import AdminPanel from "./components/AdminPanel";
 import DashboardHeader from "./components/DashboardHeader";
-import InventoryInsights from "./components/InventoryInsights";
-import InventorySection from "./components/InventorySection";
 import LoginDialog from "./components/LoginDialog";
+import TabNavigation from "./components/TabNavigation";
+import DashboardTab from "./components/DashboardTab";
+import InventoryTab from "./components/InventoryTab";
+import UserTab from "./components/UserTab";
 import { useAdminPanel } from "./hooks/useAdminPanel";
 import type {
   ClothingItem,
@@ -39,12 +40,15 @@ function getServerLanguageSnapshot(): Language {
   return "fi";
 }
 
+type Tab = "dashboard" | "inventory" | "user";
+
 export default function Home() {
   const language = useSyncExternalStore(
     subscribeToLanguage,
     getLanguageSnapshot,
     getServerLanguageSnapshot,
   );
+  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [items, setItems] = useState<ClothingItem[]>([]);
@@ -251,7 +255,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f4f3ed] px-4 py-6 text-[#202a27] sm:px-8 sm:py-10">
+    <main className="min-h-screen bg-[#f4f3ed] px-4 py-6 text-[#202a27] sm:px-8 sm:py-10 pb-28 sm:pb-6">
       {error || notice ? (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-3 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
           {error ? (
@@ -292,64 +296,75 @@ export default function Home() {
         <DashboardHeader
           t={t}
           language={language}
-          signedIn={signedIn}
-          sessionLoading={sessionLoading}
-          totalUnits={totalUnits}
           items={items}
           onLanguageChange={changeLanguage}
-          onLogout={() => void handleLogout()}
-          onSignIn={() => {
-            showError("");
-            setLoginOpen(true);
-          }}
         />
 
-        <InventoryInsights
-          items={items}
-          sizes={admin.sizes}
-          language={language}
-          loading={loading || admin.referencesLoading}
+        <TabNavigation
           t={t}
-          getCategoryName={admin.getCategoryName}
-          getSizeName={admin.getSizeName}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
 
         {sessionLoading ? (
           <section role="status" className="mb-8 border border-[#d6dbd3] bg-white p-5 text-sm text-[#68746d]">
             {t.checkingSession}
           </section>
-        ) : signedIn ? (
-          <AdminPanel
+        ) : null}
+
+        {activeTab === "dashboard" && (
+          <DashboardTab
             t={t}
-            controller={admin}
+            language={language}
+            items={items}
+            totalUnits={totalUnits}
+            sizes={admin.sizes}
+            loading={loading || admin.referencesLoading}
+            getCategoryName={admin.getCategoryName}
+            getSizeName={admin.getSizeName}
+            onAddItemClick={() => {
+              setActiveTab("inventory");
+              admin.setPanelExpanded(true);
+              admin.setForm({
+                name: "",
+                category_id: admin.categories[0]?.id || "",
+                size_id: admin.sizes[0]?.id || "",
+                quantity: "1",
+              });
+            }}
           />
-        ) : (
-          <section className="mb-8 flex flex-col gap-4 border border-[#d6dbd3] bg-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#718077]">
-                {t.adminAccess}
-              </p>
-              <h2 className="mt-1 text-lg font-semibold">{t.signInToManage}</h2>
-              <p className="mt-1 text-sm text-[#68746d]">
-                {t.adminOnly}
-              </p>
-            </div>
-          </section>
         )}
 
-        <InventorySection
-          items={items}
-          sizes={admin.sizes}
-          loading={loading || admin.referencesLoading}
-          signedIn={signedIn}
-          deletingId={admin.deletingId}
-          t={t}
-          getCategoryName={admin.getCategoryName}
-          getTopCategoryName={admin.getTopCategoryName}
-          getSizeName={admin.getSizeName}
-          onEdit={admin.editItem}
-          onDelete={admin.deleteItem}
-        />
+        {activeTab === "inventory" && (
+          <InventoryTab
+            t={t}
+            items={items}
+            sizes={admin.sizes}
+            loading={loading || admin.referencesLoading}
+            signedIn={signedIn}
+            deletingId={admin.deletingId}
+            getCategoryName={admin.getCategoryName}
+            getTopCategoryName={admin.getTopCategoryName}
+            getSizeName={admin.getSizeName}
+            controller={admin}
+            openLoginDialog={() => {
+              showError("");
+              setLoginOpen(true);
+            }}
+          />
+        )}
+
+        {activeTab === "user" && (
+          <UserTab
+            t={t}
+            signedIn={signedIn}
+            onSignInClick={() => {
+              showError("");
+              setLoginOpen(true);
+            }}
+            onLogout={() => void handleLogout()}
+          />
+        )}
       </div>
 
       {loginOpen ? (
