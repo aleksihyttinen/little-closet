@@ -27,6 +27,7 @@ It includes AI-assisted clothing recognition and outfit recommendations, with a 
 - Search and filtering by name, category, and size
 - Inventory dashboard and reporting
 - Responsive desktop and mobile UI
+- Progressive Web App (PWA) with offline support
 - AI clothing image analysis
 - AI outfit recommendations using live weather data
 
@@ -80,7 +81,7 @@ The Go API handles standard inventory CRUD operations and routes AI requests to 
 
 ## Tech Stack
 
-- **Frontend:** Next.js, React, TypeScript
+- **Frontend:** Next.js, React, TypeScript, Serwist (PWA)
 - **Backend:** Go, Gin, REST API
 - **Database:** PostgreSQL, Neon
 - **AI:** Neon Functions, Microsoft Foundry
@@ -111,5 +112,4 @@ Active development.
 - Clothing image storage
 - Inventory history
 - Extended analytics
-- PWA and offline support
 - Additional AI clothing attributes
