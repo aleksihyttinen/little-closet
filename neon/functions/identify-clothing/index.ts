@@ -19,12 +19,25 @@ const app = new Hono();
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024;
 
+app.use('*', async (c, next) => {
+    const secret = process.env.NEON_FUNCTION_SECRET;
+    if (!secret || c.req.header('Authorization') !== `Bearer ${secret}`) {
+        return c.json({ error: 'unauthorized' }, 401);
+    }
+    await next();
+});
+
 app.post('/', async (c) => {
     try {
         const form = await c.req.formData();
 
         const image = form.get('image');
         const languageValue = form.get('language') || 'en';
+        const userId = form.get('user_id');
+
+        if (typeof userId !== 'string' || userId === '') {
+            return c.json({ error: 'user_id is required' }, 400);
+        }
 
         if (!(image instanceof File)) {
             return c.json(
@@ -75,8 +88,9 @@ app.post('/', async (c) => {
                 c.name,
                 c.parent_id
             FROM categories c
+            WHERE c.user_id = $1
             ORDER BY c.name;
-        `);
+        `, [userId]);
 
         const { rows: sizes } = await pool.query<{
             id: string;
@@ -86,8 +100,9 @@ app.post('/', async (c) => {
                 s.id,
                 s.name
             FROM sizes s
+            WHERE s.user_id = $1
             ORDER BY s.sort_order, s.name;
-        `);
+        `, [userId]);
 
         if (categories.length === 0) {
             return c.json(

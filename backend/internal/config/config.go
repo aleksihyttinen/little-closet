@@ -9,10 +9,12 @@ import (
 
 type Config struct {
 	DatabaseURL                   string
+	NeonAuthURL                   string
 	FrontendURL                   string
 	HTTPAddr                      string
 	NeonGenerateOutfitFunctionURL string
 	NeonAnalyzeImageFunctionURL   string
+	NeonFunctionSecret            string
 }
 
 func Load() Config {
@@ -45,7 +47,19 @@ func Load() Config {
 		log.Fatal("NEON_ANALYZE_IMAGE_FUNCTION_URL is not set")
 	}
 
+	neonAuthURL := os.Getenv("NEON_AUTH_URL")
+	if neonAuthURL == "" {
+		log.Fatal("NEON_AUTH_URL is not set")
+	}
+
+	neonFunctionSecret := os.Getenv("NEON_FUNCTION_SECRET")
+	if neonFunctionSecret == "" {
+		log.Fatal("NEON_FUNCTION_SECRET is not set")
+	}
+
 	return Config{
+		NeonFunctionSecret:            neonFunctionSecret,
+		NeonAuthURL:                   neonAuthURL,
 		DatabaseURL:                   databaseURL,
 		HTTPAddr:                      httpAddr,
 		FrontendURL:                   frontendURL,

@@ -1,1 +1,0 @@
-DROP TABLE outfit_generation_cache;

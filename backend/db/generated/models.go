@@ -10,23 +10,25 @@ import (
 
 type Category struct {
 	ID        pgtype.UUID
+	UserID    string
 	Name      string
-	CreatedAt pgtype.Timestamptz
 	ParentID  pgtype.UUID
+	CreatedAt pgtype.Timestamptz
 }
 
 type ClothingItem struct {
 	ID         pgtype.UUID
+	UserID     string
 	Name       string
 	CategoryID pgtype.UUID
 	SizeID     pgtype.UUID
-	Quantity   int32
 	CreatedAt  pgtype.Timestamptz
 	UpdatedAt  pgtype.Timestamptz
 }
 
 type OutfitGenerationCache struct {
 	ID                pgtype.UUID
+	UserID            string
 	Latitude          float64
 	Longitude         float64
 	Language          string
@@ -36,24 +38,9 @@ type OutfitGenerationCache struct {
 	CreatedAt         pgtype.Timestamptz
 }
 
-type Session struct {
-	ID        pgtype.UUID
-	TokenHash string
-	UserID    pgtype.UUID
-	ExpiresAt pgtype.Timestamptz
-	CreatedAt pgtype.Timestamptz
-}
-
 type Size struct {
 	ID        pgtype.UUID
+	UserID    string
 	Name      string
 	SortOrder int32
-}
-
-type User struct {
-	ID           pgtype.UUID
-	Email        string
-	PasswordHash string
-	CreatedAt    pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
 }

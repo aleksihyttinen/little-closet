@@ -18,7 +18,8 @@ SELECT
     created_at,
     wardrobe_updated_at
 FROM outfit_generation_cache
-WHERE latitude = $1
+WHERE user_id = $5
+  AND latitude = $1
   AND longitude = $2
   AND language = $3
   AND wardrobe_updated_at = $4
@@ -31,6 +32,7 @@ type GetCachedOutfitParams struct {
 	Longitude         float64
 	Language          string
 	WardrobeUpdatedAt pgtype.Timestamptz
+	UserID            string
 }
 
 type GetCachedOutfitRow struct {
@@ -46,6 +48,7 @@ func (q *Queries) GetCachedOutfit(ctx context.Context, arg GetCachedOutfitParams
 		arg.Longitude,
 		arg.Language,
 		arg.WardrobeUpdatedAt,
+		arg.UserID,
 	)
 	var i GetCachedOutfitRow
 	err := row.Scan(
@@ -60,11 +63,11 @@ func (q *Queries) GetCachedOutfit(ctx context.Context, arg GetCachedOutfitParams
 const getWardrobeUpdatedAt = `-- name: GetWardrobeUpdatedAt :one
 SELECT MAX(updated_at)::timestamptz AS wardrobe_updated_at
 FROM clothing_items
-WHERE quantity > 0
+WHERE user_id = $1
 `
 
-func (q *Queries) GetWardrobeUpdatedAt(ctx context.Context) (pgtype.Timestamptz, error) {
-	row := q.db.QueryRow(ctx, getWardrobeUpdatedAt)
+func (q *Queries) GetWardrobeUpdatedAt(ctx context.Context, userID string) (pgtype.Timestamptz, error) {
+	row := q.db.QueryRow(ctx, getWardrobeUpdatedAt, userID)
 	var wardrobe_updated_at pgtype.Timestamptz
 	err := row.Scan(&wardrobe_updated_at)
 	return wardrobe_updated_at, err
@@ -72,6 +75,7 @@ func (q *Queries) GetWardrobeUpdatedAt(ctx context.Context) (pgtype.Timestamptz,
 
 const upsertCachedOutfit = `-- name: UpsertCachedOutfit :one
 INSERT INTO outfit_generation_cache (
+    user_id,
     latitude,
     longitude,
     language,
@@ -79,8 +83,8 @@ INSERT INTO outfit_generation_cache (
     outfit,
     weather
 )
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (latitude, longitude, language)
+VALUES ($7, $1, $2, $3, $4, $5, $6)
+ON CONFLICT (user_id, latitude, longitude, language)
 DO UPDATE SET
     wardrobe_updated_at = EXCLUDED.wardrobe_updated_at,
     outfit = EXCLUDED.outfit,
@@ -88,6 +92,7 @@ DO UPDATE SET
     created_at = NOW()
 RETURNING
     id,
+    user_id,
     latitude,
     longitude,
     language,
@@ -104,6 +109,7 @@ type UpsertCachedOutfitParams struct {
 	WardrobeUpdatedAt pgtype.Timestamptz
 	Outfit            string
 	Weather           []byte
+	UserID            string
 }
 
 func (q *Queries) UpsertCachedOutfit(ctx context.Context, arg UpsertCachedOutfitParams) (OutfitGenerationCache, error) {
@@ -114,10 +120,12 @@ func (q *Queries) UpsertCachedOutfit(ctx context.Context, arg UpsertCachedOutfit
 		arg.WardrobeUpdatedAt,
 		arg.Outfit,
 		arg.Weather,
+		arg.UserID,
 	)
 	var i OutfitGenerationCache
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Latitude,
 		&i.Longitude,
 		&i.Language,

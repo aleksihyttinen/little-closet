@@ -27,7 +27,6 @@ export type ErrorKey =
 export type ClothingItem = {
   id: string;
   name: string;
-  quantity: number;
   category_id: string;
   category_name: string;
   size_id: string;
@@ -39,7 +38,6 @@ export type ClothingItem = {
 export type ApiClothingItem = {
   ID: string;
   Name: string;
-  Quantity: number;
   CategoryID: string;
   CategoryName: string;
   SizeID: string;
@@ -104,5 +102,4 @@ export type ClothingForm = {
   name: string;
   category_id: string;
   size_id: string;
-  quantity: string;
 };

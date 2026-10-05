@@ -17,15 +17,28 @@ const openai = new OpenAI({
 
 const app = new Hono();
 
+app.use('*', async (c, next) => {
+  const secret = process.env.NEON_FUNCTION_SECRET;
+  if (!secret || c.req.header('Authorization') !== `Bearer ${secret}`) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
+  await next();
+});
+
 app.post('/', async (c) => {
   // Get location and language from the request
   const body = await c.req.json<{
     latitude: number;
     longitude: number;
     language: 'en' | 'fi';
+    user_id: string;
   }>();
 
-  const { latitude, longitude, language } = body;
+  const { latitude, longitude, language, user_id: userId } = body;
+
+  if (typeof userId !== 'string' || userId === '') {
+    return c.json({ error: 'user_id is required' }, 400);
+  }
 
   if (
     typeof latitude !== 'number' ||
@@ -50,14 +63,13 @@ app.post('/', async (c) => {
       ci.id,
       ci.name,
       c.name AS category,
-      s.name AS size,
-      ci.quantity
+      s.name AS size
     FROM clothing_items ci
     JOIN categories c ON c.id = ci.category_id
     JOIN sizes s ON s.id = ci.size_id
-    WHERE ci.quantity > 0
+    WHERE ci.user_id = $1
     ORDER BY c.name, ci.name;
-  `);
+  `, [userId]);
 
   // Get current weather
   const weatherUrl = new URL(
@@ -100,7 +112,7 @@ app.post('/', async (c) => {
   const wardrobe = rows
     .map(
       (item) =>
-        `- ${item.name} | category: ${item.category} | size: ${item.size} | quantity: ${item.quantity}`,
+        `- ${item.name} | category: ${item.category} | size: ${item.size}`,
     )
     .join('\n');
 
@@ -116,7 +128,7 @@ Rules:
 - Only recommend available items. Never invent items.
 - Include meaningful clothing sizes; omit "One size".
 - Use natural clothing names, e.g. "Pitkähihainen body (koko 62)" or "Long-sleeved bodysuit (size 62)".
-- Never mention category, quantity, ID, database fields, or "|" separators.
+- Never mention category, ID, database fields, or "|" separators.
 - Do not assume an item is warm, waterproof, windproof, thin, or thick unless clear from its name or provided information.
 - Consider temperature, feels-like temperature, rain, snow, precipitation, wind, and gusts.
 - Give natural reasoning, not just a repetition of weather data.
@@ -149,7 +161,7 @@ ${wardrobe}
 Choose the most suitable outfit.
 Include meaningful clothing sizes and omit "One size".
 Only mention clothing names and meaningful sizes.
-Never mention category, quantity, ID, database fields, or "|" separators.
+Never mention category, ID, database fields, or "|" separators.
 `
   });
 

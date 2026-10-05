@@ -45,29 +45,27 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	authService := auth.NewService(queries)
-	sessionService := auth.NewSessionService(queries)
-	authHandler := auth.NewHandler(authService, sessionService)
+	neonAuth, err := auth.NewNeonVerifier(ctx, cfg.NeonAuthURL)
+	if err != nil {
+		log.Fatal(err)
+	}
 	clothingService := clothing.NewService(queries)
 	clothingHandler := clothing.NewHandler(clothingService)
 
-	aiService := ai.NewService(queries, httpClient, cfg.NeonGenerateOutfitFunctionURL, cfg.NeonAnalyzeImageFunctionURL)
+	aiService := ai.NewService(queries, httpClient, cfg.NeonGenerateOutfitFunctionURL, cfg.NeonAnalyzeImageFunctionURL, cfg.NeonFunctionSecret)
 	aiHandler := ai.NewHandler(aiService)
 
 	api := router.Group("/api/v1")
 
-	api.POST("/auth/login", authHandler.Login)
-	api.POST("/auth/logout", authHandler.LogOut)
-	api.GET("/auth/session", authHandler.GetSessionByTokenHash)
-	api.GET("/clothing", clothingHandler.List)
-	api.GET("/size", clothingHandler.ListSizes)
-	api.GET("/category", clothingHandler.ListCategories)
-
-	api.POST("/ai/generate-outfit", aiHandler.GenerateOutfit)
+	api.GET("/auth/session", neonAuth.Session)
 
 	protected := api.Group("")
-	protected.Use(authHandler.AuthMiddleware())
+	protected.Use(neonAuth.Middleware())
 
+	protected.GET("/clothing", clothingHandler.List)
+	protected.GET("/size", clothingHandler.ListSizes)
+	protected.GET("/category", clothingHandler.ListCategories)
+	protected.POST("/ai/generate-outfit", aiHandler.GenerateOutfit)
 	protected.POST("/ai/analyze-image", aiHandler.AnalyzeImage)
 
 	protected.POST("/clothing", clothingHandler.Create)

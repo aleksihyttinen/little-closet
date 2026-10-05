@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	db "little-closet/db/generated"
+	"little-closet/internal/auth"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -34,6 +35,7 @@ type analyzeImageRequest struct {
 }
 
 func (h *Handler) GenerateOutfit(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	var req generateOutfitRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -58,7 +60,7 @@ func (h *Handler) GenerateOutfit(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the timestamp of the latest wardrobe change.
-	wardrobeUpdatedAt, err := h.service.GetWardrobeUpdatedAt(ctx)
+	wardrobeUpdatedAt, err := h.service.GetWardrobeUpdatedAt(ctx, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to get wardrobe state",
@@ -70,6 +72,7 @@ func (h *Handler) GenerateOutfit(c *gin.Context) {
 	cached, err := h.service.GetCachedOutfit(
 		ctx,
 		db.GetCachedOutfitParams{
+			UserID:    userID,
 			Latitude:  latitude,
 			Longitude: longitude,
 			Language:  req.Language,
@@ -100,6 +103,7 @@ func (h *Handler) GenerateOutfit(c *gin.Context) {
 	// Call the Neon Function here.
 	result, err := h.service.GenerateOutfit(
 		ctx,
+		userID,
 		generateOutfitRequest{
 			latitude,
 			longitude,
@@ -117,6 +121,7 @@ func (h *Handler) GenerateOutfit(c *gin.Context) {
 	_, err = h.service.UpsertCachedOutfit(
 		ctx,
 		db.UpsertCachedOutfitParams{
+			UserID:    userID,
 			Latitude:  latitude,
 			Longitude: longitude,
 			Language:  req.Language,
@@ -147,6 +152,7 @@ func roundCoordinate(value float64) float64 {
 }
 
 func (h *Handler) AnalyzeImage(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	language := c.PostForm("language")
 
 	if language != "en" && language != "fi" {
@@ -185,6 +191,7 @@ func (h *Handler) AnalyzeImage(c *gin.Context) {
 
 	result, err := h.service.AnalyzeImage(
 		ctx,
+		userID,
 		analyzeImageRequest{
 			Image:    imageBytes,
 			Language: language,

@@ -7,7 +7,8 @@ WITH RECURSIVE category_tree AS (
         created_at,
         ARRAY[name] AS path
     FROM categories
-    WHERE parent_id IS NULL
+    WHERE categories.parent_id IS NULL
+        AND categories.user_id = $1
 
     UNION ALL
 
@@ -20,6 +21,7 @@ WITH RECURSIVE category_tree AS (
     FROM categories child
     JOIN category_tree parent
         ON child.parent_id = parent.id
+    WHERE child.user_id = $1
 )
 SELECT
     id,
@@ -37,7 +39,8 @@ SELECT
     parent_id,
     created_at
 FROM categories
-WHERE id = $1;
+WHERE id = $1
+    AND user_id = $2;
 
 
 -- name: GetCategoryByName :one
@@ -47,16 +50,18 @@ SELECT
     parent_id,
     created_at
 FROM categories
-WHERE name = $1;
+WHERE name = $1
+    AND user_id = $2;
 
 
 -- name: CreateCategory :one
 INSERT INTO categories (
     id,
+    user_id,
     name,
     parent_id
 )
-VALUES ($1, $2, $3)
+VALUES ($1, $2, $3, $4)
 RETURNING
     id,
     name,
@@ -68,6 +73,7 @@ WITH RECURSIVE descendants AS (
     SELECT id
     FROM categories
     WHERE parent_id = $1
+        AND user_id = $4
 
     UNION ALL
 
@@ -80,6 +86,7 @@ SET
     name = $2,
     parent_id = $3
 WHERE categories.id = $1
+    AND categories.user_id = $4
     AND $3 IS DISTINCT FROM $1
     AND NOT EXISTS (SELECT 1 FROM descendants WHERE id = $3)
 RETURNING
@@ -90,7 +97,8 @@ RETURNING
 
 -- name: DeleteCategory :exec
 DELETE FROM categories
-WHERE id = $1;
+WHERE id = $1
+    AND user_id = $2;
 
 
 -- name: ListSizes :many
@@ -99,6 +107,7 @@ SELECT
     name,
     sort_order
 FROM sizes
+WHERE user_id = $1
 ORDER BY sort_order ASC, name ASC;
 
 
@@ -108,7 +117,8 @@ SELECT
     name,
     sort_order
 FROM sizes
-WHERE id = $1;
+WHERE id = $1
+    AND user_id = $2;
 
 
 -- name: GetSizeByName :one
@@ -117,16 +127,18 @@ SELECT
     name,
     sort_order
 FROM sizes
-WHERE name = $1;
+WHERE name = $1
+    AND user_id = $2;
 
 
 -- name: CreateSize :one
 INSERT INTO sizes (
     id,
+    user_id,
     name,
     sort_order
 )
-VALUES ($1, $2, $3)
+VALUES ($1, $2, $3, $4)
 RETURNING
     id,
     name,
@@ -138,6 +150,7 @@ SET
     name = $2,
     sort_order = $3
 WHERE id = $1
+    AND user_id = $4
 RETURNING
     id,
     name,
@@ -145,14 +158,14 @@ RETURNING
 
 -- name: DeleteSize :exec
 DELETE FROM sizes
-WHERE id = $1;
+WHERE id = $1
+    AND user_id = $2;
 
 
 -- name: ListClothingItems :many
 SELECT
     ci.id,
     ci.name,
-    ci.quantity,
     ci.category_id,
     c.name AS category_name,
     ci.size_id,
@@ -162,6 +175,7 @@ SELECT
 FROM clothing_items ci
 JOIN categories c ON c.id = ci.category_id
 JOIN sizes s ON s.id = ci.size_id
+WHERE ci.user_id = $1
 ORDER BY s.sort_order, s.name, ci.name;
 
 
@@ -169,7 +183,6 @@ ORDER BY s.sort_order, s.name, ci.name;
 SELECT
     ci.id,
     ci.name,
-    ci.quantity,
     ci.category_id,
     c.name AS category_name,
     ci.size_id,
@@ -179,16 +192,17 @@ SELECT
 FROM clothing_items ci
 JOIN categories c ON c.id = ci.category_id
 JOIN sizes s ON s.id = ci.size_id
-WHERE ci.id = $1;
+WHERE ci.id = $1
+    AND ci.user_id = $2;
 
 
 -- name: CreateClothingItem :one
 INSERT INTO clothing_items (
     id,
+    user_id,
     name,
     category_id,
-    size_id,
-    quantity
+    size_id
 )
 VALUES ($1, $2, $3, $4, $5)
 RETURNING
@@ -196,7 +210,6 @@ RETURNING
     name,
     category_id,
     size_id,
-    quantity,
     created_at,
     updated_at;
 
@@ -207,19 +220,19 @@ SET
     name = $2,
     category_id = $3,
     size_id = $4,
-    quantity = $5,
     updated_at = NOW()
-WHERE id = $1
+WHERE clothing_items.id = $1
+    AND clothing_items.user_id = $5
 RETURNING
     id,
     name,
     category_id,
     size_id,
-    quantity,
     created_at,
     updated_at;
 
 
 -- name: DeleteClothingItem :exec
 DELETE FROM clothing_items
-WHERE id = $1;
+WHERE id = $1
+    AND user_id = $2;

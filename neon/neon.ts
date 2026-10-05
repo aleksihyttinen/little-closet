@@ -11,6 +11,7 @@ export default defineConfig({
         FOUNDRY_ENDPOINT: process.env.FOUNDRY_ENDPOINT!,
         FOUNDRY_API_KEY: process.env.FOUNDRY_API_KEY!,
         FOUNDRY_DEPLOYMENT: process.env.FOUNDRY_DEPLOYMENT!,
+        NEON_FUNCTION_SECRET: process.env.NEON_FUNCTION_SECRET!,
       },
     },
     identifyclothing: {
@@ -20,6 +21,7 @@ export default defineConfig({
         FOUNDRY_ENDPOINT: process.env.FOUNDRY_ENDPOINT!,
         FOUNDRY_API_KEY: process.env.FOUNDRY_API_KEY!,
         FOUNDRY_DEPLOYMENT: process.env.FOUNDRY_DEPLOYMENT!,
+        NEON_FUNCTION_SECRET: process.env.NEON_FUNCTION_SECRET!,
       },
     },
   },

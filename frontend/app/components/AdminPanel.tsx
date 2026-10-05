@@ -185,19 +185,6 @@ export default function AdminPanel({ t, controller }: AdminPanelProps) {
               ))}
             </select>
           </label>
-          <label className="text-sm font-medium text-[#45534b]">
-            {t.quantity}
-            <input
-              required
-              type="number"
-              min="0"
-              max="2147483647"
-              step="1"
-              value={form.quantity}
-              onChange={(event) => setForm((current) => ({ ...current, quantity: event.target.value }))}
-              className="mt-1.5 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
-            />
-          </label>
           <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
             <button
               type="submit"

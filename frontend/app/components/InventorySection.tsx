@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 import type { Messages } from "../messages";
 import type { ClothingItem, SizeOption } from "../types";
 
-type SortField = "name" | "category" | "size" | "quantity";
+type SortField = "name" | "category" | "size";
 type SortDirection = "asc" | "desc";
 
 type InventorySectionProps = {
@@ -57,8 +57,6 @@ export default function InventorySection({
             comparison = (leftSize?.sortOrder ?? Number.MAX_SAFE_INTEGER) -
                 (rightSize?.sortOrder ?? Number.MAX_SAFE_INTEGER);
             if (comparison === 0) comparison = getSizeName(left).localeCompare(getSizeName(right));
-        } else {
-            comparison = left.quantity - right.quantity;
         }
 
         if (comparison === 0) comparison = left.name.localeCompare(right.name);
@@ -151,7 +149,6 @@ export default function InventorySection({
                                 {sortHeading("name", t.itemName, "px-6 py-3")}
                                 {sortHeading("category", t.category, "px-4 py-3")}
                                 {sortHeading("size", t.size, "px-4 py-3")}
-                                {sortHeading("quantity", t.quantity, "px-4 py-3 text-right")}
                                 {signedIn ? (
                                     <th scope="col" className="px-6 py-3 text-right font-semibold">{t.actions}</th>
                                 ) : null}
@@ -163,13 +160,13 @@ export default function InventorySection({
                                         <tr className="border-y border-[#d6ded5] bg-[#e7efe7]">
                                             <th
                                                 scope="rowgroup"
-                                                colSpan={signedIn ? 5 : 4}
+                                                colSpan={signedIn ? 4 : 3}
                                                 className="px-6 py-3"
                                             >
                                                 <div className="flex items-center justify-between gap-3">
                                                     <span className="text-sm font-semibold text-[#293730]">{categoryName}</span>
                                                     <span className="inline-flex shrink-0 rounded-full border border-[#d6ded5] bg-white px-3 py-1 text-xs font-semibold tabular-nums text-[#315c4c]">
-                                                        {categoryItems.reduce((total, item) => total + item.quantity, 0)} {t.unitsLabel}
+                                                        {categoryItems.length} {t.unitsLabel}
                                                     </span>
                                                 </div>
 
@@ -182,9 +179,6 @@ export default function InventorySection({
                                                 </th>
                                                 <td className="px-4 py-4 text-[#59675e]">{getCategoryName(item)}</td>
                                                 <td className="px-4 py-4 text-[#59675e]">{getSizeName(item)}</td>
-                                                <td className="px-4 py-4 text-right font-semibold tabular-nums">
-                                                    {item.quantity}
-                                                </td>
                                                 {signedIn ? (
                                                     <td className="px-6 py-4">
                                                         <div className="flex justify-end gap-2">

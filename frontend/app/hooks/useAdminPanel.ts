@@ -29,7 +29,6 @@ const createEmptyForm = (categoryId = "", sizeId = ""): ClothingForm => ({
   name: "",
   category_id: categoryId,
   size_id: sizeId,
-  quantity: "1",
 });
 
 export function useAdminPanel({
@@ -221,7 +220,7 @@ export function useAdminPanel({
     setNotice("");
 
     try {
-      const payload = { ...form, quantity: Number(form.quantity) };
+      const payload = form;
       const path = editingId ? `/clothing/${editingId}` : "/clothing";
       await apiRequest(path, {
         method: editingId ? "PUT" : "POST",
@@ -244,7 +243,6 @@ export function useAdminPanel({
       name: item.name,
       category_id: item.category_id,
       size_id: item.size_id,
-      quantity: String(item.quantity),
     });
     setEditingId(item.id);
     setPanelExpanded(true);

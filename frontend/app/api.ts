@@ -1,3 +1,4 @@
+import { authClient } from "./lib/auth";
 import type {
   ApiCategoryResponse,
   ApiClothingItem,
@@ -31,6 +32,10 @@ export async function apiRequest(
     headers.set("Content-Type", "application/json");
   }
 
+  const { data: sessionData } = await authClient.getSession();
+  const token = sessionData?.session?.token;
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
@@ -58,7 +63,6 @@ function normalizeItem(item: ApiClothingItem): ClothingItem {
   return {
     id: item.ID,
     name: item.Name,
-    quantity: item.Quantity,
     category_id: item.CategoryID,
     category_name: item.CategoryName,
     size_id: item.SizeID,

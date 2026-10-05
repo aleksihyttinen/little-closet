@@ -18,6 +18,7 @@ type Service struct {
 	httpClient                    *http.Client
 	neonGenerateOutfitFunctionURL string
 	neonAnalyzeImageFunctionURL   string
+	neonFunctionSecret            string
 }
 
 type generateOutfitResponse struct {
@@ -48,9 +49,10 @@ type AnalyzeImageCategory struct {
 	ParentID *string `json:"parent_id"`
 }
 
-func NewService(queries *db.Queries, httpClient *http.Client, neonGenerateOutfitFunctionURL string, neonAnalyzeImageFunctionURL string) *Service {
+func NewService(queries *db.Queries, httpClient *http.Client, neonGenerateOutfitFunctionURL string, neonAnalyzeImageFunctionURL string, neonFunctionSecret string) *Service {
 	return &Service{
 		queries:                       queries,
+		neonFunctionSecret:            neonFunctionSecret,
 		httpClient:                    httpClient,
 		neonGenerateOutfitFunctionURL: neonGenerateOutfitFunctionURL,
 		neonAnalyzeImageFunctionURL:   neonAnalyzeImageFunctionURL,
@@ -83,8 +85,9 @@ func (s *Service) UpsertCachedOutfit(
 
 func (s *Service) GetWardrobeUpdatedAt(
 	ctx context.Context,
+	userID string,
 ) (time.Time, error) {
-	ts, err := s.queries.GetWardrobeUpdatedAt(ctx)
+	ts, err := s.queries.GetWardrobeUpdatedAt(ctx, userID)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -98,10 +101,14 @@ func (s *Service) GetWardrobeUpdatedAt(
 
 func (s *Service) GenerateOutfit(
 	ctx context.Context,
+	userID string,
 	arg generateOutfitRequest,
 ) (GenerateOutfitResult, error) {
 
-	body, err := json.Marshal(arg)
+	body, err := json.Marshal(struct {
+		generateOutfitRequest
+		UserID string `json:"user_id"`
+	}{arg, userID})
 	if err != nil {
 		return GenerateOutfitResult{}, err
 	}
@@ -117,6 +124,7 @@ func (s *Service) GenerateOutfit(
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+s.neonFunctionSecret)
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
@@ -145,11 +153,16 @@ func (s *Service) GenerateOutfit(
 
 func (s *Service) AnalyzeImage(
 	ctx context.Context,
+	userID string,
 	arg analyzeImageRequest,
 ) (AnalyzeImageResult, error) {
 	var body bytes.Buffer
 
 	writer := multipart.NewWriter(&body)
+
+	if err := writer.WriteField("user_id", userID); err != nil {
+		return AnalyzeImageResult{}, err
+	}
 
 	if err := writer.WriteField("language", arg.Language); err != nil {
 		return AnalyzeImageResult{}, err
@@ -186,6 +199,7 @@ func (s *Service) AnalyzeImage(
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+s.neonFunctionSecret)
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {

@@ -19,8 +19,9 @@ func NewService(queries *db.Queries) *Service {
 
 func (s *Service) GetClothing(
 	ctx context.Context,
+	userID string,
 ) ([]db.ListClothingItemsRow, error) {
-	items, err := s.queries.ListClothingItems(ctx)
+	items, err := s.queries.ListClothingItems(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -31,10 +32,10 @@ func (s *Service) GetClothing(
 func (s *Service) CreateClothing(
 	ctx context.Context,
 	arg db.CreateClothingItemParams,
-) (db.ClothingItem, error) {
+) (db.CreateClothingItemRow, error) {
 	item, err := s.queries.CreateClothingItem(ctx, arg)
 	if err != nil {
-		return db.ClothingItem{}, err
+		return db.CreateClothingItemRow{}, err
 	}
 
 	return item, nil
@@ -43,10 +44,10 @@ func (s *Service) CreateClothing(
 func (s *Service) UpdateClothing(
 	ctx context.Context,
 	arg db.UpdateClothingItemParams,
-) (db.ClothingItem, error) {
+) (db.UpdateClothingItemRow, error) {
 	item, err := s.queries.UpdateClothingItem(ctx, arg)
 	if err != nil {
-		return db.ClothingItem{}, err
+		return db.UpdateClothingItemRow{}, err
 	}
 
 	return item, nil
@@ -55,8 +56,9 @@ func (s *Service) UpdateClothing(
 func (s *Service) DeleteClothing(
 	ctx context.Context,
 	id pgtype.UUID,
+	userID string,
 ) error {
-	err := s.queries.DeleteClothingItem(ctx, id)
+	err := s.queries.DeleteClothingItem(ctx, db.DeleteClothingItemParams{ID: id, UserID: userID})
 	if err != nil {
 		return err
 	}
@@ -66,8 +68,9 @@ func (s *Service) DeleteClothing(
 
 func (s *Service) GetSizes(
 	ctx context.Context,
-) ([]db.Size, error) {
-	sizes, err := s.queries.ListSizes(ctx)
+	userID string,
+) ([]db.ListSizesRow, error) {
+	sizes, err := s.queries.ListSizes(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +80,9 @@ func (s *Service) GetSizes(
 
 func (s *Service) GetGategories(
 	ctx context.Context,
+	userID string,
 ) ([]db.ListCategoriesRow, error) {
-	items, err := s.queries.ListCategories(ctx)
+	items, err := s.queries.ListCategories(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -96,8 +100,9 @@ func (s *Service) CreateCategory(
 func (s *Service) GetCategoryByID(
 	ctx context.Context,
 	id pgtype.UUID,
+	userID string,
 ) (db.GetCategoryByIDRow, error) {
-	return s.queries.GetCategoryByID(ctx, id)
+	return s.queries.GetCategoryByID(ctx, db.GetCategoryByIDParams{ID: id, UserID: userID})
 }
 
 func (s *Service) UpdateCategory(
@@ -110,27 +115,29 @@ func (s *Service) UpdateCategory(
 func (s *Service) DeleteCategory(
 	ctx context.Context,
 	id pgtype.UUID,
+	userID string,
 ) error {
-	return s.queries.DeleteCategory(ctx, id)
+	return s.queries.DeleteCategory(ctx, db.DeleteCategoryParams{ID: id, UserID: userID})
 }
 
 func (s *Service) CreateSize(
 	ctx context.Context,
 	arg db.CreateSizeParams,
-) (db.Size, error) {
+) (db.CreateSizeRow, error) {
 	return s.queries.CreateSize(ctx, arg)
 }
 
 func (s *Service) UpdateSize(
 	ctx context.Context,
 	arg db.UpdateSizeParams,
-) (db.Size, error) {
+) (db.UpdateSizeRow, error) {
 	return s.queries.UpdateSize(ctx, arg)
 }
 
 func (s *Service) DeleteSize(
 	ctx context.Context,
 	id pgtype.UUID,
+	userID string,
 ) error {
-	return s.queries.DeleteSize(ctx, id)
+	return s.queries.DeleteSize(ctx, db.DeleteSizeParams{ID: id, UserID: userID})
 }

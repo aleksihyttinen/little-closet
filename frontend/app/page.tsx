@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "./lib/auth";
-import { ApiError, apiRequest, fetchClothingItems } from "./api";
+import { ApiError, fetchClothingItems } from "./api";
 import { messages, type Language } from "./messages";
 import DashboardHeader from "./components/DashboardHeader";
 import SplashScreen from "./components/SplashScreen";
@@ -153,13 +153,6 @@ export default function Home() {
         hasSession = Boolean(data?.session);
       } catch {}
 
-      if (!hasSession) {
-        try {
-          await apiRequest("/auth/session", { method: "GET" });
-          hasSession = true;
-        } catch {}
-      }
-
       if (!active) return;
 
       if (hasSession) {
@@ -204,7 +197,7 @@ export default function Home() {
     };
   }, [showError]);
 
-  const totalUnits = items.reduce((total, item) => total + item.quantity, 0);
+  const totalUnits = items.length;
 
   const changeLanguage = (nextLanguage: Language) => {
     window.localStorage.setItem("little-closet-language", nextLanguage);
@@ -214,14 +207,12 @@ export default function Home() {
   const handleLogout = async () => {
     showError("");
     try {
-      await apiRequest("/auth/logout", {
-        method: "POST",
-      });
+      await authClient.signOut();
       navigator.serviceWorker.controller?.postMessage({
         type: "CLEAR_API_CACHE",
       });
       setSignedIn(false);
-      showNotice("signedOutNotice");
+      router.replace("/auth/sign-in");
     } catch (requestError) {
       const status =
         requestError instanceof ApiError ? requestError.status : 0;

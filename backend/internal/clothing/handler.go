@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	db "little-closet/db/generated"
+	"little-closet/internal/auth"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -25,18 +26,17 @@ type createClothingRequest struct {
 	Name       string `json:"name"`
 	CategoryID string `json:"category_id"`
 	SizeID     string `json:"size_id"`
-	Quantity   int32  `json:"quantity"`
 }
 
 type updateClothingRequest struct {
 	Name       string `json:"name"`
 	CategoryID string `json:"category_id"`
 	SizeID     string `json:"size_id"`
-	Quantity   int32  `json:"quantity"`
 }
 
 func (h *Handler) List(c *gin.Context) {
-	items, err := h.service.GetClothing(c.Request.Context())
+	userID := auth.CurrentNeonUserID(c)
+	items, err := h.service.GetClothing(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to fetch clothing items",
@@ -54,6 +54,7 @@ func (h *Handler) List(c *gin.Context) {
 }
 
 func (h *Handler) Create(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	var req createClothingRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -82,6 +83,7 @@ func (h *Handler) Create(c *gin.Context) {
 	item, err := h.service.CreateClothing(
 		c.Request.Context(),
 		db.CreateClothingItemParams{
+			UserID: userID,
 			ID: pgtype.UUID{
 				Bytes: uuid.New(),
 				Valid: true,
@@ -95,7 +97,6 @@ func (h *Handler) Create(c *gin.Context) {
 				Bytes: sizeID,
 				Valid: true,
 			},
-			Quantity: req.Quantity,
 		},
 	)
 
@@ -112,6 +113,7 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 func (h *Handler) Update(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	var req updateClothingRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -148,6 +150,7 @@ func (h *Handler) Update(c *gin.Context) {
 	item, err := h.service.UpdateClothing(
 		c.Request.Context(),
 		db.UpdateClothingItemParams{
+			UserID: userID,
 			ID: pgtype.UUID{
 				Bytes: clothingID,
 				Valid: true,
@@ -161,7 +164,6 @@ func (h *Handler) Update(c *gin.Context) {
 				Bytes: sizeID,
 				Valid: true,
 			},
-			Quantity: req.Quantity,
 		},
 	)
 	if err != nil {
@@ -184,6 +186,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 func (h *Handler) Delete(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	clothingID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -194,7 +197,7 @@ func (h *Handler) Delete(c *gin.Context) {
 	err = h.service.DeleteClothing(c.Request.Context(), pgtype.UUID{
 		Bytes: clothingID,
 		Valid: true,
-	})
+	}, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to delete clothing item",
@@ -226,7 +229,8 @@ type updateSizeRequest struct {
 }
 
 func (h *Handler) ListCategories(c *gin.Context) {
-	items, err := h.service.GetGategories(c.Request.Context())
+	userID := auth.CurrentNeonUserID(c)
+	items, err := h.service.GetGategories(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch categories"})
 		return
@@ -238,6 +242,7 @@ func (h *Handler) ListCategories(c *gin.Context) {
 }
 
 func (h *Handler) CreateCategory(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	var req createCategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -252,7 +257,7 @@ func (h *Handler) CreateCategory(c *gin.Context) {
 			return
 		}
 		parentID = pgtype.UUID{Bytes: parsedParentID, Valid: true}
-		if _, err := h.service.GetCategoryByID(c.Request.Context(), parentID); err != nil {
+		if _, err := h.service.GetCategoryByID(c.Request.Context(), parentID, userID); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "parent category not found"})
 				return
@@ -263,6 +268,7 @@ func (h *Handler) CreateCategory(c *gin.Context) {
 	}
 
 	item, err := h.service.CreateCategory(c.Request.Context(), db.CreateCategoryParams{
+		UserID:   userID,
 		ID:       pgtype.UUID{Bytes: uuid.New(), Valid: true},
 		Name:     req.Name,
 		ParentID: parentID,
@@ -276,6 +282,7 @@ func (h *Handler) CreateCategory(c *gin.Context) {
 }
 
 func (h *Handler) UpdateCategory(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	var req updateCategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -296,7 +303,7 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 			return
 		}
 		parentID = pgtype.UUID{Bytes: parsedParentID, Valid: true}
-		if _, err := h.service.GetCategoryByID(c.Request.Context(), parentID); err != nil {
+		if _, err := h.service.GetCategoryByID(c.Request.Context(), parentID, userID); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "parent category not found"})
 				return
@@ -307,13 +314,14 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 	}
 
 	item, err := h.service.UpdateCategory(c.Request.Context(), db.UpdateCategoryParams{
+		UserID:   userID,
 		ID:       pgtype.UUID{Bytes: categoryID, Valid: true},
 		Name:     req.Name,
 		ParentID: parentID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			_, lookupErr := h.service.GetCategoryByID(c.Request.Context(), pgtype.UUID{Bytes: categoryID, Valid: true})
+			_, lookupErr := h.service.GetCategoryByID(c.Request.Context(), pgtype.UUID{Bytes: categoryID, Valid: true}, userID)
 			switch {
 			case lookupErr == nil:
 				c.JSON(http.StatusBadRequest, gin.H{"error": "category cannot be its own parent or descendant"})
@@ -332,13 +340,14 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 }
 
 func (h *Handler) DeleteCategory(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	categoryID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category_id"})
 		return
 	}
 
-	if err := h.service.DeleteCategory(c.Request.Context(), pgtype.UUID{Bytes: categoryID, Valid: true}); err != nil {
+	if err := h.service.DeleteCategory(c.Request.Context(), pgtype.UUID{Bytes: categoryID, Valid: true}, userID); err != nil {
 		var postgresError *pgconn.PgError
 		if errors.As(err, &postgresError) && postgresError.Code == "23503" {
 			c.JSON(http.StatusConflict, gin.H{"error": "category is still used by clothing items or child categories"})
@@ -352,18 +361,20 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 }
 
 func (h *Handler) ListSizes(c *gin.Context) {
-	items, err := h.service.GetSizes(c.Request.Context())
+	userID := auth.CurrentNeonUserID(c)
+	items, err := h.service.GetSizes(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch sizes"})
 		return
 	}
 	if items == nil {
-		items = []db.Size{}
+		items = []db.ListSizesRow{}
 	}
 	c.JSON(http.StatusOK, gin.H{"items": items})
 }
 
 func (h *Handler) CreateSize(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	var req createSizeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -371,6 +382,7 @@ func (h *Handler) CreateSize(c *gin.Context) {
 	}
 
 	item, err := h.service.CreateSize(c.Request.Context(), db.CreateSizeParams{
+		UserID:    userID,
 		ID:        pgtype.UUID{Bytes: uuid.New(), Valid: true},
 		Name:      req.Name,
 		SortOrder: req.SortOrder,
@@ -384,6 +396,7 @@ func (h *Handler) CreateSize(c *gin.Context) {
 }
 
 func (h *Handler) UpdateSize(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	var req updateSizeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -397,6 +410,7 @@ func (h *Handler) UpdateSize(c *gin.Context) {
 	}
 
 	item, err := h.service.UpdateSize(c.Request.Context(), db.UpdateSizeParams{
+		UserID:    userID,
 		ID:        pgtype.UUID{Bytes: sizeID, Valid: true},
 		Name:      req.Name,
 		SortOrder: req.SortOrder,
@@ -414,13 +428,14 @@ func (h *Handler) UpdateSize(c *gin.Context) {
 }
 
 func (h *Handler) DeleteSize(c *gin.Context) {
+	userID := auth.CurrentNeonUserID(c)
 	sizeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid size_id"})
 		return
 	}
 
-	if err := h.service.DeleteSize(c.Request.Context(), pgtype.UUID{Bytes: sizeID, Valid: true}); err != nil {
+	if err := h.service.DeleteSize(c.Request.Context(), pgtype.UUID{Bytes: sizeID, Valid: true}, userID); err != nil {
 		var postgresError *pgconn.PgError
 		if errors.As(err, &postgresError) && postgresError.Code == "23503" {
 			c.JSON(http.StatusConflict, gin.H{"error": "size is still used by clothing items"})

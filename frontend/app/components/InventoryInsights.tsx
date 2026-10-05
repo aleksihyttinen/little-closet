@@ -176,7 +176,7 @@ export default function InventoryInsights({
     categoryTotals.set(item.category_id, {
       id: item.category_id,
       name: getCategoryName(item),
-      units: (existing?.units ?? 0) + item.quantity,
+      units: (existing?.units ?? 0) + 1,
     });
   }
   const categoryData = [...categoryTotals.values()].filter((entry) => entry.units > 0);
@@ -192,7 +192,7 @@ export default function InventoryInsights({
       const row: SizeByCategory = { name: size.name };
       for (const item of items.filter((item) => item.size_id === size.id)) {
         const categoryId = item.category_id;
-        row[categoryId] = (row[categoryId] as number | undefined ?? 0) + item.quantity;
+        row[categoryId] = (row[categoryId] as number | undefined ?? 0) + 1;
       }
       return row;
     })
@@ -400,7 +400,7 @@ export default function InventoryInsights({
                 <li key={item.id} className="py-3 first:pt-0">
                   <p className="truncate text-sm font-medium text-[#34433b]">{item.name}</p>
                   <p className="mt-1 truncate text-xs text-[#68746d]">
-                    {getCategoryName(item)} · {getSizeName(item)} · {formatUnits(item.quantity)}
+                    {getCategoryName(item)} · {getSizeName(item)}
                   </p>
                   <time dateTime={item.updated_at} className="mt-1 block text-xs text-[#718077]">
                     {formatDate(item.updated_at)}
