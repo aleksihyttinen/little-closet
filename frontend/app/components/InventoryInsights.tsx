@@ -6,6 +6,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -54,14 +55,22 @@ type LocationErrorKey =
 type OutfitErrorKey = LocationErrorKey | "weatherOutfitError";
 
 const categoryColors = [
-  "#315c4c",
-  "#d7a45b",
-  "#638d9a",
-  "#bb735c",
-  "#8e9c62",
-  "#7b718d",
-  "#cf8c82",
-  "#526a7a",
+  "#315c4c", // deep green
+  "#d7a45b", // ochre
+  "#638d9a", // muted blue
+  "#bb735c", // terracotta
+  "#8e9c62", // olive
+  "#7b718d", // muted purple
+  "#cf8c82", // dusty rose
+  "#526a7a", // slate blue
+  "#9b7b5b", // warm brown
+  "#6f927c", // sage
+  "#b38b9b", // dusty mauve
+  "#c28f5c", // caramel
+  "#668b8b", // muted teal
+  "#9a8f65", // khaki
+  "#7d6b5d", // taupe
+  "#a66f67", // muted brick
 ];
 
 function getBrowserLocation(): Promise<Coordinates> {
@@ -172,15 +181,24 @@ export default function InventoryInsights({
   }
   const categoryData = [...categoryTotals.values()].filter((entry) => entry.units > 0);
 
-  const sizeData: UnitData[] = [...sizes]
+  type SizeByCategory = {
+    name: string;
+    [key: string]: number | string;
+  };
+
+  const sizeData: SizeByCategory[] = [...sizes]
     .sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name))
-    .map((size) => ({
-      id: size.id,
-      name: size.name,
-      units: items
-        .filter((item) => item.size_id === size.id)
-        .reduce((total, item) => total + item.quantity, 0),
-    }));
+    .map((size) => {
+      const row: SizeByCategory = { name: size.name };
+      
+      for (const item of items.filter((item) => item.size_id === size.id)) {
+        const categoryId = item.category_id;
+        row[categoryId] = (row[categoryId] as number | undefined ?? 0) + item.quantity;
+      }
+      
+      return row;
+    })
+    .filter((row) => Object.values(row).some((v, i) => i > 0 && typeof v === "number" && v > 0));
 
   const recentItems = [...items]
     .sort((left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at))
@@ -196,12 +214,12 @@ export default function InventoryInsights({
 
   return (
     <section aria-labelledby="inventory-insights-title">
-      <h2 id="inventory-insights-title" className="mb-5 text-lg font-semibold text-[#293730]">
+      <h2 id="inventory-insights-title" className="mb-5 text-lg font-semibold text-[#45534b]">
         {t.inventoryInsights}
       </h2>
       <div className="mb-7 border border-[#d6dbd3] bg-white p-5 shadow-[0_8px_24px_rgba(35,53,43,0.04)] sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold">{t.weatherOutfitTitle}</h3>
+          <h3 className="text-lg text-[#60766b] font-semibold">{t.weatherOutfitTitle}</h3>
           <button
             type="button"
             aria-expanded={suggestion?.language === language && suggestionOpen}
@@ -329,7 +347,7 @@ export default function InventoryInsights({
           ) : sizeData.length === 0 ? (
             <p className="py-12 text-center text-sm text-[#68746d]">{t.noChartData}</p>
           ) : (
-            <div className="w-full" style={{ height: `${Math.max(320, sizeData.length * 28)}px` }}>
+            <div className="w-full" style={{ height: `${Math.min(480, Math.max(360, sizeData.length * 28))}px` }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   accessibilityLayer
@@ -350,7 +368,22 @@ export default function InventoryInsights({
                     tick={{ fill: "#59675e", fontSize: 12 }}
                   />
                   <Tooltip formatter={(value) => formatUnits(value as number | string | undefined)} />
-                  <Bar dataKey="units" fill="#638d9a" radius={[0, 3, 3, 0]} maxBarSize={18} />
+                  <Legend
+                    wrapperStyle={{ paddingTop: "20px", fontSize: "12px" }}
+                    iconType="square"
+                    height={60}
+                  />
+                  {categoryData.map((category, index) => (
+                    <Bar
+                      key={category.id}
+                      dataKey={category.id}
+                      stackId="categories"
+                      fill={categoryColors[index % categoryColors.length]}
+                      radius={index === categoryData.length - 1 ? [0, 3, 3, 0] : 0}
+                      maxBarSize={18}
+                      name={category.name}
+                    />
+                  ))}
                 </BarChart>
               </ResponsiveContainer>
             </div>

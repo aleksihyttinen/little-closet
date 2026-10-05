@@ -255,7 +255,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f4f3ed] px-4 pt-10 pb-28 text-[#202a27] sm:px-8 sm:py-10 sm:pb-6">
+    <main className="min-h-screen bg-[#f4f3ed] px-4 pt-10 pb-28 text-[#202a27] sm:px-8 sm:py-10 sm:pb-20">
       {error || notice ? (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-3 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
           {error ? (
@@ -295,9 +295,7 @@ export default function Home() {
       <div className="mx-auto max-w-6xl">
         <DashboardHeader
           t={t}
-          language={language}
           items={items}
-          onLanguageChange={changeLanguage}
         />
 
         <TabNavigation
@@ -322,16 +320,6 @@ export default function Home() {
             loading={loading || admin.referencesLoading}
             getCategoryName={admin.getCategoryName}
             getSizeName={admin.getSizeName}
-            onAddItemClick={() => {
-              setActiveTab("inventory");
-              admin.setPanelExpanded(true);
-              admin.setForm({
-                name: "",
-                category_id: admin.categories[0]?.id || "",
-                size_id: admin.sizes[0]?.id || "",
-                quantity: "1",
-              });
-            }}
           />
         )}
 
@@ -358,6 +346,8 @@ export default function Home() {
           <UserTab
             t={t}
             signedIn={signedIn}
+            language={language}
+            onLanguageChange={changeLanguage}
             onSignInClick={() => {
               showError("");
               setLoginOpen(true);
