@@ -95,7 +95,7 @@ export default function TabNavigation({ t, activeTab, onTabChange }: TabNavigati
       </nav>
 
       {/* Mobile PWA Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#d6dbd3] bg-white shadow-[0_-4px_12px_rgba(32,42,39,0.1)] sm:hidden safe-area-inset-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#d6dbd3] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_12px_rgba(32,42,39,0.1)] sm:hidden">
         <div className="flex justify-around">
           {tabs.map((tab) => (
             <button
