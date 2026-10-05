@@ -190,12 +190,10 @@ export default function InventoryInsights({
     .sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name))
     .map((size) => {
       const row: SizeByCategory = { name: size.name };
-      
       for (const item of items.filter((item) => item.size_id === size.id)) {
         const categoryId = item.category_id;
         row[categoryId] = (row[categoryId] as number | undefined ?? 0) + item.quantity;
       }
-      
       return row;
     })
     .filter((row) => Object.values(row).some((v, i) => i > 0 && typeof v === "number" && v > 0));
@@ -289,8 +287,8 @@ export default function InventoryInsights({
             </p>
           </div>
         </div></section>
-      <div className="grid gap-7 lg:grid-cols-3 lg:gap-0">
-        <section className="min-w-0 lg:pr-6">
+      <div className="grid gap-8 lg:grid-cols-3 lg:gap-0">
+        <section className="min-w-0 mb-8 overflow-hidden lg:mb-0 lg:pr-6">
           <h3 className="mb-3 text-sm font-semibold text-[#45534b]">{t.unitsByCategory}</h3>
           {loading ? (
             <p className="py-12 text-center text-sm text-[#68746d]">{t.loading}</p>
@@ -340,7 +338,7 @@ export default function InventoryInsights({
           )}
         </section>
 
-        <section className="min-w-0 border-[#e1e5df] lg:border-l lg:px-6">
+        <section className="min-w-0 mb-8 overflow-hidden lg:mb-0 border-[#e1e5df] lg:border-l lg:px-6">
           <h3 className="mb-3 text-sm font-semibold text-[#45534b]">{t.unitsBySize}</h3>
           {loading ? (
             <p className="py-12 text-center text-sm text-[#68746d]">{t.loading}</p>
@@ -390,7 +388,7 @@ export default function InventoryInsights({
           )}
         </section>
 
-        <section className="min-w-0 border-[#e1e5df] lg:border-l lg:pl-6">
+        <section className="min-w-0 overflow-hidden lg:mb-0 border-[#e1e5df] lg:border-l lg:pl-6">
           <h3 className="mb-3 text-sm font-semibold text-[#45534b]">{t.recentlyUpdated}</h3>
           {loading ? (
             <p className="py-8 text-sm text-[#68746d]">{t.loading}</p>
