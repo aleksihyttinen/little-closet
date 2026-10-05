@@ -12,7 +12,7 @@ func TestLoadReadsParentEnvAndPreservesEnvironment(t *testing.T) {
 	if err := os.Mkdir(backendDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".env"), []byte("DATABASE_URL=postgres://from-dotenv\nHTTP_ADDR=:9090\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte("DATABASE_URL=postgres://from-dotenv\nPORT=9090\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -40,13 +40,17 @@ func TestLoadReadsParentEnvAndPreservesEnvironment(t *testing.T) {
 			_ = os.Unsetenv("DATABASE_URL")
 		}
 	})
-	t.Setenv("HTTP_ADDR", ":9091")
+	t.Setenv("PORT", "9091")
+	t.Setenv("NEON_GENERATE_OUTFIT_FUNCTION_URL", "http://outfit")
+	t.Setenv("NEON_ANALYZE_IMAGE_FUNCTION_URL", "http://analyze")
+	t.Setenv("NEON_AUTH_URL", "http://auth")
+	t.Setenv("NEON_FUNCTION_SECRET", "secret")
 
 	cfg := Load()
 	if cfg.DatabaseURL != "postgres://from-dotenv" {
 		t.Errorf("DatabaseURL = %q, want value from parent .env", cfg.DatabaseURL)
 	}
-	if cfg.HTTPAddr != ":9091" {
+	if cfg.HTTPAddr != "0.0.0.0:9091" {
 		t.Errorf("HTTPAddr = %q, want environment override", cfg.HTTPAddr)
 	}
 }
