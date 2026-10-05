@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next'
 export default function manifest(): MetadataRoute.Manifest {
     return {
         name: 'Little Closet',
-        short_name: 'LittleCloset',
+        short_name: 'Little Closet',
         description: "An app to manage your baby's clothes",
         start_url: '/',
         scope: '/',

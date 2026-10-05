@@ -230,16 +230,23 @@ export default function Home() {
       await apiRequest("/auth/logout", {
         method: "POST",
       });
+      navigator.serviceWorker.controller?.postMessage({
+        type: "CLEAR_API_CACHE",
+      });
+      setSignedIn(false);
       showNotice("signedOutNotice");
     } catch (requestError) {
-      const status = requestError instanceof ApiError ? requestError.status : 0;
-
-      if (status !== 401) {
+      const status =
+        requestError instanceof ApiError ? requestError.status : 0;
+      if (status === 401) {
+        navigator.serviceWorker.controller?.postMessage({
+          type: "CLEAR_API_CACHE",
+        });
+        setSignedIn(false);
+      } else {
         showError("serverError");
       }
       handleApiError(requestError, true);
-    } finally {
-      setSignedIn(false);
     }
   };
 
