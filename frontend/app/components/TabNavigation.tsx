@@ -79,6 +79,7 @@ export default function TabNavigation({ t, activeTab, onTabChange }: TabNavigati
         <div className="flex gap-2 sm:gap-4">
           {tabs.map((tab) => (
             <button
+              type="button"
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`px-4 py-3 text-sm font-semibold border-b-2 transition ${activeTab === tab.id
@@ -95,10 +96,11 @@ export default function TabNavigation({ t, activeTab, onTabChange }: TabNavigati
       </nav>
 
       {/* Mobile PWA Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#d6dbd3] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_12px_rgba(32,42,39,0.1)] sm:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#d6dbd3] bg-white shadow-[0_-4px_12px_rgba(32,42,39,0.1)] sm:hidden">
         <div className="flex justify-around">
           {tabs.map((tab) => (
             <button
+              type="button"
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`flex flex-1 flex-col items-center justify-center gap-1 py-3 px-2 transition ${activeTab === tab.id

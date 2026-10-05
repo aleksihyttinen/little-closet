@@ -51,6 +51,7 @@ export default function DashboardTab({
             </p>
           </div>
           <button
+            type="button"
             onClick={onAddItemClick}
             className="min-h-11 rounded-md bg-[#315c4c] px-6 text-sm font-semibold text-white transition hover:bg-[#244738] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315c4c]"
           >
