@@ -20,7 +20,7 @@ export default function LegalPage({
       <Link href="/" className="text-sm font-semibold text-[#315c4c] hover:underline">
         ← Little Closet
       </Link>
-      {[fi, en].map((content) => (
+      {[en, fi].map((content) => (
         <article key={content.title} className="mt-8">
           <h1 className="text-2xl font-semibold">{content.title}</h1>
           <p className="mt-1 text-sm text-[#68746d]">{content.updated}</p>
