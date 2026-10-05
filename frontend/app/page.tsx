@@ -255,7 +255,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f4f3ed] px-4 py-6 text-[#202a27] sm:px-8 sm:py-10 pb-28 sm:pb-6">
+    <main className="min-h-screen bg-[#f4f3ed] px-4 pt-10 pb-28 text-[#202a27] sm:px-8 sm:py-10 sm:pb-6">
       {error || notice ? (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-3 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
           {error ? (
