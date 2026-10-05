@@ -3,17 +3,17 @@
 import {
   useCallback,
   useEffect,
-  useRef,
   useState,
   useSyncExternalStore,
   type Dispatch,
-  type FormEvent,
   type SetStateAction,
 } from "react";
+import { useRouter } from "next/navigation";
+import { authClient } from "./lib/auth";
 import { ApiError, apiRequest, fetchClothingItems } from "./api";
 import { messages, type Language } from "./messages";
 import DashboardHeader from "./components/DashboardHeader";
-import LoginDialog from "./components/LoginDialog";
+import SplashScreen from "./components/SplashScreen";
 import TabNavigation from "./components/TabNavigation";
 import DashboardTab from "./components/DashboardTab";
 import InventoryTab from "./components/InventoryTab";
@@ -49,17 +49,13 @@ export default function Home() {
     getServerLanguageSnapshot,
   );
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [items, setItems] = useState<ClothingItem[]>([]);
   const [error, setError] = useState<ErrorKey | "">("");
   const [notice, setNotice] = useState<NoticeKey | "">("");
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [signingIn, setSigningIn] = useState(false);
-  const signingInRef = useRef(false);
+  const router = useRouter();
   const t = messages[language];
 
   const showError = useCallback<Dispatch<SetStateAction<ErrorKey | "">>>(
@@ -117,15 +113,15 @@ export default function Home() {
 
       if (status === 401 && !loginFailure) {
         setSignedIn(false);
-        setLoginOpen(true);
+        router.push("/auth/sign-in");
       }
     },
-    [showError],
+    [showError, router],
   );
 
   const openLogin = useCallback(() => {
-    setLoginOpen(true);
-  }, []);
+    router.push("/auth/sign-in");
+  }, [router]);
 
   const admin = useAdminPanel({
     language,
@@ -146,13 +142,32 @@ export default function Home() {
     let active = true;
 
     const checkSession = async () => {
+      let hasSession = false;
+
       try {
-        await apiRequest("/auth/session", { method: "GET" });
-        if (active) setSignedIn(true);
-      } catch {
-        if (active) setSignedIn(false);
-      } finally {
-        if (active) setSessionLoading(false);
+        // Also completes the OAuth return (neon_auth_session_verifier) before the param is stripped
+        const { data } = await authClient.getSession();
+        if (window.location.search.includes("neon_auth_session_verifier")) {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+        hasSession = Boolean(data?.session);
+      } catch {}
+
+      if (!hasSession) {
+        try {
+          await apiRequest("/auth/session", { method: "GET" });
+          hasSession = true;
+        } catch {}
+      }
+
+      if (!active) return;
+
+      if (hasSession) {
+        setSignedIn(true);
+        setSessionLoading(false);
+      } else {
+        setSignedIn(false);
+        router.replace("/auth/sign-in");
       }
     };
 
@@ -161,7 +176,7 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     let active = true;
@@ -196,40 +211,8 @@ export default function Home() {
     window.dispatchEvent(new Event(languageChangeEvent));
   };
 
-  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (signingInRef.current) return;
-
-    signingInRef.current = true;
-    setSigningIn(true);
-    showError("");
-
-    try {
-      await apiRequest("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
-      setSignedIn(true);
-      setPassword("");
-      setLoginOpen(false);
-      showNotice("signedInNotice");
-    } catch (requestError) {
-      const status = requestError instanceof ApiError ? requestError.status : 0;
-
-      if (status !== 401) {
-        showError("serverError");
-      }
-      handleApiError(requestError, true);
-    } finally {
-      signingInRef.current = false;
-      setSigningIn(false);
-    }
-  };
-
   const handleLogout = async () => {
     showError("");
-    setLoginOpen(false);
-
     try {
       await apiRequest("/auth/logout", {
         method: "POST",
@@ -253,6 +236,10 @@ export default function Home() {
       handleApiError(requestError, true);
     }
   };
+
+  if (!signedIn) {
+    return <SplashScreen label={t.checkingSession} />;
+  }
 
   return (
     <main className="min-h-screen bg-[#f4f3ed] px-4 pt-10 pb-28 text-[#202a27] sm:px-8 sm:py-10 sm:pb-20">
@@ -335,10 +322,7 @@ export default function Home() {
             getTopCategoryName={admin.getTopCategoryName}
             getSizeName={admin.getSizeName}
             controller={admin}
-            openLoginDialog={() => {
-              showError("");
-              setLoginOpen(true);
-            }}
+            openLoginDialog={openLogin}
           />
         )}
 
@@ -348,27 +332,12 @@ export default function Home() {
             signedIn={signedIn}
             language={language}
             onLanguageChange={changeLanguage}
-            onSignInClick={() => {
-              showError("");
-              setLoginOpen(true);
-            }}
+            onSignInClick={openLogin}
             onLogout={() => void handleLogout()}
           />
         )}
       </div>
 
-      {loginOpen ? (
-        <LoginDialog
-          t={t}
-          email={email}
-          signingIn={signingIn}
-          password={password}
-          onEmailChange={setEmail}
-          onPasswordChange={setPassword}
-          onClose={() => setLoginOpen(false)}
-          onSubmit={handleLogin}
-        />
-      ) : null}
     </main>
   );
 }

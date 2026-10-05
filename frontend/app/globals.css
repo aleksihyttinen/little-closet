@@ -1,4 +1,6 @@
+@layer theme, base, neon-auth, components, utilities;
 @import "tailwindcss";
+@import "@neondatabase/auth-ui/tailwind";
 
 :root {
   --background: #f4f3ed;
