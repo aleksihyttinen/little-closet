@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "./lib/auth";
-import { ApiError, clearCachedToken, fetchClothingItems } from "./api";
+import { ApiError, clearCachedToken, fetchClothingItems, getAuthSession } from "./api";
 import { messages, type Language } from "./messages";
 import DashboardHeader from "./components/DashboardHeader";
 import SplashScreen from "./components/SplashScreen";
@@ -150,7 +150,7 @@ export default function Home() {
       let hasSession = false;
 
       try {
-        const { data } = await authClient.getSession();
+        const { data } = await getAuthSession();
         if (window.location.search.includes("neon_auth_session_verifier")) {
           window.history.replaceState(null, "", window.location.pathname);
         }

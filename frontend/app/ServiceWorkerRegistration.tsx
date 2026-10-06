@@ -5,6 +5,8 @@ import { warmToken } from './api'
 
 export default function ServiceWorkerRegistration() {
     useEffect(() => {
+        warmToken()
+
         const register = () => {
             window.setTimeout(() => {
                 void navigator.serviceWorker?.register('/sw.js').catch(() => {})
@@ -16,17 +18,14 @@ export default function ServiceWorkerRegistration() {
         const onVisible = () => {
             if (document.visibilityState !== 'visible') return
             warmToken()
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.ready
-                    .then((registration) => registration.active?.postMessage({ type: 'WAKE_UP' }))
-                    .catch(() => {})
-            }
         }
 
         document.addEventListener('visibilitychange', onVisible)
+        window.addEventListener('pageshow', warmToken)
         return () => {
             window.removeEventListener('load', register)
             document.removeEventListener('visibilitychange', onVisible)
+            window.removeEventListener('pageshow', warmToken)
         }
     }, [])
 

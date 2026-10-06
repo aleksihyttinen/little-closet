@@ -16,6 +16,14 @@ const API_BASE_URL =
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 let pendingToken: Promise<string | undefined> | null = null;
+let pendingSession: ReturnType<typeof authClient.getSession> | null = null;
+
+export function getAuthSession() {
+  pendingSession ??= authClient.getSession().finally(() => {
+    pendingSession = null;
+  });
+  return pendingSession;
+}
 
 function getToken(): Promise<string | undefined> {
   if (cachedToken && cachedToken.expiresAt - Date.now() > 30_000) {
@@ -29,7 +37,7 @@ function getToken(): Promise<string | undefined> {
 }
 
 async function fetchToken(): Promise<string | undefined> {
-  const { data } = await authClient.getSession();
+  const { data } = await getAuthSession();
   const value = data?.session?.token;
   if (!value) {
     cachedToken = null;
