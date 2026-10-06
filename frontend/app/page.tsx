@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "./lib/auth";
-import { ApiError, fetchClothingItems } from "./api";
+import { ApiError, clearCachedToken, fetchClothingItems } from "./api";
 import { messages, type Language } from "./messages";
 import DashboardHeader from "./components/DashboardHeader";
 import SplashScreen from "./components/SplashScreen";
@@ -48,6 +48,11 @@ export default function Home() {
     getLanguageSnapshot,
     getServerLanguageSnapshot,
   );
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    image?: string | null;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [items, setItems] = useState<ClothingItem[]>([]);
   const [error, setError] = useState<ErrorKey | "">("");
@@ -145,12 +150,18 @@ export default function Home() {
       let hasSession = false;
 
       try {
-        // Also completes the OAuth return (neon_auth_session_verifier) before the param is stripped
         const { data } = await authClient.getSession();
         if (window.location.search.includes("neon_auth_session_verifier")) {
           window.history.replaceState(null, "", window.location.pathname);
         }
         hasSession = Boolean(data?.session);
+        if (data?.user && active) {
+          setUser({
+            name: data.user.name,
+            email: data.user.email,
+            image: data.user.image,
+          });
+        }
       } catch {}
 
       if (!active) return;
@@ -208,6 +219,7 @@ export default function Home() {
     showError("");
     try {
       await authClient.signOut();
+      clearCachedToken();
       navigator.serviceWorker.controller?.postMessage({
         type: "CLEAR_API_CACHE",
       });
@@ -228,12 +240,12 @@ export default function Home() {
     }
   };
 
-  if (!signedIn) {
+  if (!signedIn || loading) {
     return <SplashScreen label={t.checkingSession} />;
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f3ed] px-4 pt-10 pb-28 text-[#202a27] sm:px-8 sm:py-10 sm:pb-20">
+    <main className="min-h-screen bg-[#f4f3ed] px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-28 text-[#202a27] sm:px-8 sm:py-10 sm:pb-20">
       {error || notice ? (
         <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-3 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
           {error ? (
@@ -323,6 +335,7 @@ export default function Home() {
             signedIn={signedIn}
             language={language}
             onLanguageChange={changeLanguage}
+            user={user}
             onSignInClick={openLogin}
             onLogout={() => void handleLogout()}
           />

@@ -124,9 +124,8 @@ export const messages = {
     user: "Käyttäjä",
     userManagement: "Käyttäjän hallinta",
     currentUser: "Nykyinen käyttäjä",
-    userManagementComingSoon: "Monenkäyttäjän tuki tulee pian. Tällä hetkellä vain ylläpitäjä on käytettävissä.",
-    adminUser: "Ylläpitäjä",
-    adminUserDescription: "Olet kirjautuneena ylläpitäjänä, jolla on täydet oikeudet vaatekaapin hallintajärjestelmään.",
+    nameLabel: "Nimi",
+    emailLabel: "Sähköposti",
   },
 
   en: {
@@ -253,9 +252,8 @@ export const messages = {
     user: "User",
     userManagement: "User Management",
     currentUser: "Current User",
-    userManagementComingSoon: "Multi-user support is coming soon. Currently, only the admin user is available.",
-    adminUser: "Admin User",
-    adminUserDescription: "You are logged in as the admin user with full access to the inventory management system.",
+    nameLabel: "Name",
+    emailLabel: "Email",
   },
 } as const;
 

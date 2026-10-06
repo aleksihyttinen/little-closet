@@ -2,7 +2,10 @@
 
 import type { Messages } from "../messages";
 import type { ClothingItem, SizeOption } from "../types";
-import InventoryInsights from "./InventoryInsights";
+import dynamic from "next/dynamic";
+
+// recharts is large; load it after hydration so it doesn't block the first interaction
+const InventoryInsights = dynamic(() => import("./InventoryInsights"), { ssr: false });
 
 type DashboardTabProps = {
   t: Messages;

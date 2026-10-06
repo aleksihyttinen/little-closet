@@ -96,7 +96,6 @@ export default function AdminPanel({ t, controller }: AdminPanelProps) {
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 disabled={analyzingClothing}
                 className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-not-allowed"
                 onChange={(event) => {

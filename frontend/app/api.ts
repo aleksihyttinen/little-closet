@@ -13,6 +13,47 @@ import type {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
+let cachedToken: { value: string; expiresAt: number } | null = null;
+
+let pendingToken: Promise<string | undefined> | null = null;
+
+function getToken(): Promise<string | undefined> {
+  if (cachedToken && cachedToken.expiresAt - Date.now() > 30_000) {
+    return Promise.resolve(cachedToken.value);
+  }
+
+  pendingToken ??= fetchToken().finally(() => {
+    pendingToken = null;
+  });
+  return pendingToken;
+}
+
+async function fetchToken(): Promise<string | undefined> {
+  const { data } = await authClient.getSession();
+  const value = data?.session?.token;
+  if (!value) {
+    cachedToken = null;
+    return undefined;
+  }
+
+  let expiresAt = Date.now() + 60_000;
+  try {
+    const payload = JSON.parse(atob(value.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if (typeof payload.exp === "number") expiresAt = payload.exp * 1000;
+  } catch {}
+
+  cachedToken = { value, expiresAt };
+  return value;
+}
+
+export function warmToken() {
+  void getToken().catch(() => {});
+}
+
+export function clearCachedToken() {
+  cachedToken = null;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -32,8 +73,7 @@ export async function apiRequest(
     headers.set("Content-Type", "application/json");
   }
 
-  const { data: sessionData } = await authClient.getSession();
-  const token = sessionData?.session?.token;
+  const token = await getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
