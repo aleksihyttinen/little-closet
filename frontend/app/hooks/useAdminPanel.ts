@@ -42,6 +42,11 @@ export function useAdminPanel({
   refreshItems,
 }: UseAdminPanelOptions) {
   const adminPanelRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [editingName, setEditingName] = useState("");
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [filledFields, setFilledFields] = useState<(keyof ClothingForm)[]>([]);
   const [analyzingClothing, setAnalyzingClothing] = useState(false);
   const [analysisPreview, setAnalysisPreview] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -54,15 +59,12 @@ export function useAdminPanel({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryParentId, setNewCategoryParentId] = useState("");
   const [newSizeName, setNewSizeName] = useState("");
-  const [newSizeOrder, setNewSizeOrder] = useState<string | null>(null);
   const [creatingReference, setCreatingReference] = useState<ReferenceKind>(null);
   const [editingReference, setEditingReference] = useState<ReferenceEdit>(null);
   const [referenceName, setReferenceName] = useState("");
   const [referenceParentId, setReferenceParentId] = useState("");
-  const [referenceSortOrder, setReferenceSortOrder] = useState("0");
   const [savingReferenceId, setSavingReferenceId] = useState<string | null>(null);
   const [referencesLoading, setReferencesLoading] = useState(true);
-  const sizeOrderValue = newSizeOrder ?? getNextSizeOrder(sizes);
 
   useEffect(() => {
     let active = true;
@@ -125,6 +127,9 @@ export function useAdminPanel({
         category_id: result.category.id,
         size_id: result.size.id,
       }));
+      setFormErrors({});
+      setFilledFields(["name", "category_id", "size_id"]);
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
 
     } catch (error) {
       setError("analysisFailed");
@@ -201,7 +206,15 @@ export function useAdminPanel({
     return descendantIds;
   };
 
+  const updateFormField = (field: keyof ClothingForm, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setFormErrors((current) => ({ ...current, [field]: undefined }));
+    setFilledFields((current) => current.filter((entry) => entry !== field));
+  };
+
   const cancelItemEdit = () => {
+    setFormErrors({});
+    setFilledFields([]);
     setForm(createEmptyForm(categories[0]?.id ?? "", sizes[0]?.id ?? ""));
     setEditingId(null);
     setError("");
@@ -215,12 +228,22 @@ export function useAdminPanel({
       return;
     }
 
+    const nextErrors: FormErrors = {};
+    if (!form.name.trim()) nextErrors.name = "nameRequired";
+    if (!form.category_id) nextErrors.category_id = "categoryRequired";
+    if (!form.size_id) nextErrors.size_id = "sizeRequired";
+    setFormErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      if (nextErrors.name) nameInputRef.current?.focus();
+      return;
+    }
+
     setSaving(true);
     setError("");
     setNotice("");
 
     try {
-      const payload = form;
+      const payload = { ...form, name: form.name.trim() };
       const path = editingId ? `/clothing/${editingId}` : "/clothing";
       await apiRequest(path, {
         method: editingId ? "PUT" : "POST",
@@ -228,9 +251,15 @@ export function useAdminPanel({
       });
       await refreshItems();
       const wasEditing = editingId !== null;
-      setForm(createEmptyForm(categories[0]?.id ?? "", sizes[0]?.id ?? ""));
+      setForm(
+        wasEditing
+          ? createEmptyForm(categories[0]?.id ?? "", sizes[0]?.id ?? "")
+          : { ...createEmptyForm(), category_id: form.category_id, size_id: form.size_id },
+      );
+      setFilledFields([]);
       setEditingId(null);
       setNotice(wasEditing ? "itemUpdated" : "itemAdded");
+      if (!wasEditing) nameInputRef.current?.focus();
     } catch (error) {
       handleApiError(error);
     } finally {
@@ -244,7 +273,10 @@ export function useAdminPanel({
       category_id: item.category_id,
       size_id: item.size_id,
     });
+    setFormErrors({});
+    setFilledFields([]);
     setEditingId(item.id);
+    setEditingName(item.name);
     setPanelExpanded(true);
     setError("");
     setNotice("");
@@ -325,8 +357,8 @@ export function useAdminPanel({
     }
 
     const trimmedName = newSizeName.trim();
-    const parsedOrder = Number(sizeOrderValue);
-    if (!trimmedName || !Number.isInteger(parsedOrder) || parsedOrder < 0) {
+    const parsedOrder = getNextSizeOrder(sizes);
+    if (!trimmedName) {
       setError("invalidData");
       return;
     }
@@ -341,7 +373,6 @@ export function useAdminPanel({
       });
       const { nextSizes } = await refreshReferenceData();
       setNewSizeName("");
-      setNewSizeOrder(null);
       setForm((current) => ({
         ...current,
         size_id: nextSizes[nextSizes.length - 1]?.id ?? current.size_id ?? nextSizes[0]?.id ?? "",
@@ -365,7 +396,6 @@ export function useAdminPanel({
   const startEditSize = (size: SizeOption) => {
     setEditingReference({ kind: "size", id: size.id });
     setReferenceName(size.name);
-    setReferenceSortOrder(String(size.sortOrder));
     setError("");
     setNotice("");
   };
@@ -374,7 +404,6 @@ export function useAdminPanel({
     setEditingReference(null);
     setReferenceName("");
     setReferenceParentId("");
-    setReferenceSortOrder("0");
   };
 
   const updateCategory = async (
@@ -413,8 +442,7 @@ export function useAdminPanel({
   ) => {
     event.preventDefault();
     const trimmedName = referenceName.trim();
-    const sortOrder = Number(referenceSortOrder);
-    if (!trimmedName || !Number.isInteger(sortOrder) || sortOrder < 0) {
+    if (!trimmedName) {
       setError("invalidData");
       return;
     }
@@ -425,12 +453,44 @@ export function useAdminPanel({
     try {
       await apiRequest(`/size/${size.id}`, {
         method: "PUT",
-        body: JSON.stringify({ name: trimmedName, sort_order: sortOrder }),
+        body: JSON.stringify({ name: trimmedName, sort_order: size.sortOrder }),
       });
       await refreshReferenceData();
       await refreshItems();
       cancelReferenceEdit();
       setNotice("sizeUpdated");
+    } catch (error) {
+      handleApiError(error);
+    } finally {
+      setSavingReferenceId(null);
+    }
+  };
+
+  const moveSize = async (size: SizeOption, direction: -1 | 1) => {
+    const from = sizes.findIndex((entry) => entry.id === size.id);
+    const to = from + direction;
+    if (from < 0 || to < 0 || to >= sizes.length) return;
+
+    const reordered = [...sizes];
+    [reordered[from], reordered[to]] = [reordered[to], reordered[from]];
+    const changed = reordered
+      .map((entry, index) => ({ entry, index }))
+      .filter(({ entry, index }) => entry.sortOrder !== index);
+
+    setSavingReferenceId(size.id);
+    setError("");
+    setNotice("");
+    try {
+      await Promise.all(
+        changed.map(({ entry, index }) =>
+          apiRequest(`/size/${entry.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ name: entry.name, sort_order: index }),
+          }),
+        ),
+      );
+      await refreshReferenceData();
+      await refreshItems();
     } catch (error) {
       handleApiError(error);
     } finally {
@@ -487,6 +547,12 @@ export function useAdminPanel({
 
   return {
     adminPanelRef,
+    nameInputRef,
+    formRef,
+    editingName,
+    formErrors,
+    filledFields,
+    updateFormField,
     analyzingClothing,
     analysisPreview,
     analyzeClothingImage,
@@ -506,17 +572,12 @@ export function useAdminPanel({
     setNewCategoryParentId,
     newSizeName,
     setNewSizeName,
-    newSizeOrder,
-    setNewSizeOrder,
-    sizeOrderValue,
     creatingReference,
     editingReference,
     referenceName,
     setReferenceName,
     referenceParentId,
     setReferenceParentId,
-    referenceSortOrder,
-    setReferenceSortOrder,
     savingReferenceId,
     getCategoryPath,
     getCategoryName,
@@ -534,12 +595,15 @@ export function useAdminPanel({
     cancelReferenceEdit,
     updateCategory,
     updateSize,
+    moveSize,
     deleteCategory,
     deleteSize,
   };
 }
 
-function getNextSizeOrder(sizes: SizeOption[]): string {
-  if (sizes.length === 0) return "0";
-  return String(Math.max(...sizes.map((size) => size.sortOrder)) + 1);
+export type FormErrors = Partial<Record<keyof ClothingForm, "nameRequired" | "categoryRequired" | "sizeRequired">>;
+
+function getNextSizeOrder(sizes: SizeOption[]): number {
+  if (sizes.length === 0) return 0;
+  return Math.max(...sizes.map((size) => size.sortOrder)) + 1;
 }

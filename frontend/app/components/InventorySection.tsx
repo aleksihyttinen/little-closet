@@ -124,7 +124,7 @@ export default function InventorySection({
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder={t.searchPlaceholder}
-                            className="mt-1.5 min-h-10 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-sm font-normal normal-case tracking-normal text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
+                            className="mt-1.5 min-h-10 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-base sm:text-sm font-normal normal-case tracking-normal text-[#202a27] outline-none focus:border-[#527d67] focus:ring-2 focus:ring-[#527d67]/15"
                         />
                     </label>
                 </div>
@@ -142,7 +142,8 @@ export default function InventorySection({
                     </p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
+                <>
+                <div className="hidden overflow-x-auto sm:block">
                     <table className="w-full min-w-[680px] text-left text-sm">
                         <thead className="border-b-2  bg-[#315c4c] text-xs uppercase tracking-wide text-[#dce9df]">
                             <tr>
@@ -186,7 +187,7 @@ export default function InventorySection({
                                                                 type="button"
                                                                 disabled={deletingId === item.id}
                                                                 onClick={() => onEdit(item)}
-                                                                className="rounded-md border border-[#cbd3ca] px-3 py-1.5 text-xs font-semibold text-[#315c4c] transition hover:bg-[#edf3eb] disabled:cursor-not-allowed disabled:opacity-40"
+                                                                className="rounded-md border border-[#cbd3ca] min-h-11 px-3 text-xs font-semibold text-[#315c4c] transition hover:bg-[#edf3eb] disabled:cursor-not-allowed disabled:opacity-40"
                                                             >
                                                                 {t.edit}
                                                             </button>
@@ -194,7 +195,7 @@ export default function InventorySection({
                                                                 type="button"
                                                                 disabled={deletingId === item.id}
                                                                 onClick={() => void onDelete(item)}
-                                                                className="rounded-md border border-[#e0c8c0] px-3 py-1.5 text-xs font-semibold text-[#9b4938] transition hover:bg-[#fff3ef] disabled:cursor-not-allowed disabled:opacity-40"
+                                                                className="rounded-md border border-[#e0c8c0] min-h-11 px-3 text-xs font-semibold text-[#9b4938] transition hover:bg-[#fff3ef] disabled:cursor-not-allowed disabled:opacity-40"
                                                             >
                                                                 {deletingId === item.id ? t.deleting : t.delete}
                                                             </button>
@@ -208,6 +209,74 @@ export default function InventorySection({
                         </tbody>
                     </table>
                 </div>
+                <div className="sm:hidden">
+                    <div className="flex items-end gap-2 border-b border-[#e1e5df] px-4 py-3">
+                        <label className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wide text-[#65716b]">
+                            {t.sortBy}
+                            <select
+                                value={sortField}
+                                onChange={(event) => {
+                                    setSortField(event.target.value as SortField);
+                                    setSortDirection("asc");
+                                }}
+                                className="mt-1 min-h-11 w-full rounded-md border border-[#cbd3ca] bg-[#fbfcf9] px-3 text-base font-normal normal-case tracking-normal text-[#202a27]"
+                            >
+                                <option value="name">{t.itemName}</option>
+                                <option value="category">{t.category}</option>
+                                <option value="size">{t.size}</option>
+                            </select>
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setSortDirection((direction) => direction === "asc" ? "desc" : "asc")}
+                            aria-label={sortDirection === "asc" ? t.sortAscending : t.sortDescending}
+                            className="min-h-11 min-w-11 rounded-md border border-[#cbd3ca] text-base font-semibold text-[#315c4c]"
+                        >
+                            {sortDirection === "asc" ? "↑" : "↓"}
+                        </button>
+                    </div>
+                    {sortedGroups.map(([categoryName, categoryItems]) => (
+                        <div key={categoryName}>
+                            <div className="flex items-center justify-between gap-3 border-y border-[#d6ded5] bg-[#e7efe7] px-4 py-3">
+                                <span className="text-sm font-semibold text-[#293730]">{categoryName}</span>
+                                <span className="shrink-0 rounded-full border border-[#d6ded5] bg-white px-3 py-1 text-xs font-semibold tabular-nums text-[#4f5f56]">
+                                    {categoryItems.length} {t.unitsLabel}
+                                </span>
+                            </div>
+                            <ul className="divide-y divide-[#e8ebe6]">
+                                {categoryItems.map((item) => (
+                                    <li key={item.id} className="px-4 py-4">
+                                        <p className="font-semibold text-[#293730]">{item.name}</p>
+                                        <p className="mt-0.5 text-sm text-[#59675e]">
+                                            {getCategoryName(item)} · {getSizeName(item)}
+                                        </p>
+                                        {signedIn ? (
+                                            <div className="mt-3 grid grid-cols-2 gap-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={deletingId === item.id}
+                                                    onClick={() => onEdit(item)}
+                                                    className="min-h-11 rounded-md border border-[#cbd3ca] text-sm font-semibold text-[#315c4c] disabled:opacity-45"
+                                                >
+                                                    {t.edit}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={deletingId === item.id}
+                                                    onClick={() => void onDelete(item)}
+                                                    className="min-h-11 rounded-md border border-[#e0c8c0] text-sm font-semibold text-[#9b4938] disabled:opacity-45"
+                                                >
+                                                    {deletingId === item.id ? t.deleting : t.delete}
+                                                </button>
+                                            </div>
+                                        ) : null}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </div>
+                </>
             )}
         </section>
     );
