@@ -27,18 +27,6 @@ import type {
 
 const languageChangeEvent = "little-closet-language-change";
 
-function subscribeToHydration() {
-  return () => {};
-}
-
-function getHydratedSnapshot() {
-  return true;
-}
-
-function getServerHydratedSnapshot() {
-  return false;
-}
-
 function subscribeToLanguage(callback: () => void) {
   window.addEventListener(languageChangeEvent, callback);
   return () => window.removeEventListener(languageChangeEvent, callback);
@@ -72,11 +60,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
-  const hydrated = useSyncExternalStore(
-    subscribeToHydration,
-    getHydratedSnapshot,
-    getServerHydratedSnapshot,
-  );
   const router = useRouter();
   const t = messages[language];
 
@@ -257,7 +240,7 @@ export default function Home() {
     }
   };
 
-  if (!hydrated || !signedIn || loading) {
+  if (!signedIn || loading) {
     return <SplashScreen label={t.checkingSession} />;
   }
 

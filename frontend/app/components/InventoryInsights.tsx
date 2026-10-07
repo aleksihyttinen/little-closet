@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import {
   Bar,
   BarChart,
@@ -106,6 +106,23 @@ function isLocationErrorKey(error: unknown): error is LocationErrorKey {
     || error === "locationNotSupported";
 }
 
+const desktopQuery = "(hover: hover) and (pointer: fine)";
+
+function subscribeToDesktop(callback: () => void) {
+  const media = window.matchMedia(desktopQuery);
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+}
+
+// Chart animations block touch input on iOS, so only animate on desktop pointers.
+function useChartAnimation() {
+  return useSyncExternalStore(
+    subscribeToDesktop,
+    () => window.matchMedia(desktopQuery).matches,
+    () => false,
+  );
+}
+
 export default function InventoryInsights({
   items,
   sizes,
@@ -124,6 +141,7 @@ export default function InventoryInsights({
   });
   const coordinates = useRef<Coordinates | null>(null);
   const locationRequest = useRef<Promise<Coordinates> | null>(null);
+  const animateCharts = useChartAnimation();
   const [suggestion, setSuggestion] = useState<OutfitSuggestion | null>(null);
   const [suggestionOpen, setSuggestionOpen] = useState(false);
   const [generatingSuggestion, setGeneratingSuggestion] = useState(false);
@@ -312,6 +330,7 @@ export default function InventoryInsights({
                       outerRadius={86}
                       paddingAngle={2}
                       stroke="none"
+                      isAnimationActive={animateCharts}
                     >
                       {categoryData.map((entry, index) => (
                         <Cell key={entry.id} fill={categoryColors[index % categoryColors.length]} />
@@ -379,6 +398,7 @@ export default function InventoryInsights({
                       fill={categoryColors[index % categoryColors.length]}
                       radius={index === categoryData.length - 1 ? [0, 3, 3, 0] : 0}
                       maxBarSize={18}
+                      isAnimationActive={animateCharts}
                       name={category.name}
                     />
                   ))}
