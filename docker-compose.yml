@@ -18,9 +18,7 @@ services:
         NEON_AUTH_URL: ${NEON_AUTH_URL}
     restart: unless-stopped
     expose:
-      - "3000"
-    depends_on:
-      - backend
+      - "80"
 
   caddy:
     image: caddy:2-alpine
