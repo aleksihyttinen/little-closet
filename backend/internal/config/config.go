@@ -10,6 +10,7 @@ import (
 type Config struct {
 	DatabaseURL                   string
 	NeonAuthURL                   string
+	DemoUserID                    string
 	FrontendURL                   string
 	HTTPAddr                      string
 	NeonGenerateOutfitFunctionURL string
@@ -52,6 +53,11 @@ func Load() Config {
 		log.Fatal("NEON_AUTH_URL is not set")
 	}
 
+	demoUserID := os.Getenv("DEMO_USER_ID")
+	if demoUserID == "" {
+		log.Fatal("DEMO_USER_ID is not set")
+	}
+
 	neonFunctionSecret := os.Getenv("NEON_FUNCTION_SECRET")
 	if neonFunctionSecret == "" {
 		log.Fatal("NEON_FUNCTION_SECRET is not set")
@@ -60,6 +66,7 @@ func Load() Config {
 	return Config{
 		NeonFunctionSecret:            neonFunctionSecret,
 		NeonAuthURL:                   neonAuthURL,
+		DemoUserID:                    demoUserID,
 		DatabaseURL:                   databaseURL,
 		HTTPAddr:                      httpAddr,
 		FrontendURL:                   frontendURL,

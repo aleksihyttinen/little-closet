@@ -8,6 +8,7 @@ import (
 	"little-closet/internal/clothing"
 	"little-closet/internal/config"
 	"little-closet/internal/database"
+	"little-closet/internal/demo"
 	"log"
 	"net/http"
 	"time"
@@ -54,10 +55,15 @@ func main() {
 
 	aiService := ai.NewService(queries, httpClient, cfg.NeonGenerateOutfitFunctionURL, cfg.NeonAnalyzeImageFunctionURL, cfg.NeonFunctionSecret)
 	aiHandler := ai.NewHandler(aiService)
+	demoHandler := demo.NewHandler(cfg.DemoUserID, clothingHandler, aiHandler)
 
 	api := router.Group("/api/v1")
 
 	api.GET("/auth/session", neonAuth.Session)
+	api.GET("/demo/clothing", demoHandler.List)
+	api.GET("/demo/category", demoHandler.ListCategories)
+	api.GET("/demo/size", demoHandler.ListSizes)
+	api.POST("/demo/ai/generate-outfit", demoHandler.GenerateOutfit)
 
 	protected := api.Group("")
 	protected.Use(neonAuth.Middleware())

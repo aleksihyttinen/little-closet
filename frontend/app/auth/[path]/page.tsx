@@ -1,4 +1,4 @@
-import { AuthView } from "@neondatabase/auth-ui";
+import AuthPageClient from "@/app/components/AuthPageClient";
 
 export const dynamicParams = false;
 
@@ -19,9 +19,5 @@ export default async function AuthPage({
 }) {
   const { path } = await params;
 
-  return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <AuthView path={path} />
-    </main>
-  );
+  return <AuthPageClient path={path} />;
 }

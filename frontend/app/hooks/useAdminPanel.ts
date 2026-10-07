@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { apiRequest, fetchCategories, fetchSizes } from "../api";
+import { apiRequest, fetchCategories, fetchSizes, type ApiMode } from "../api";
 import { analyzeClothing } from "../lib/analyzeClothing";
 import type { Messages } from "../messages";
 import type {
@@ -17,6 +17,7 @@ type ReferenceEdit = { kind: "category" | "size"; id: string } | null;
 type UseAdminPanelOptions = {
   language: 'en' | 'fi'
   signedIn: boolean;
+  apiMode?: ApiMode;
   t: Messages;
   setError: Dispatch<SetStateAction<ErrorKey | "">>;
   setNotice: Dispatch<SetStateAction<NoticeKey | "">>;
@@ -34,6 +35,7 @@ const createEmptyForm = (categoryId = "", sizeId = ""): ClothingForm => ({
 export function useAdminPanel({
   language,
   signedIn,
+  apiMode = "authenticated",
   t,
   setError,
   setNotice,
@@ -72,8 +74,8 @@ export function useAdminPanel({
     const loadReferences = async () => {
       try {
         const [loadedCategories, loadedSizes] = await Promise.all([
-          fetchCategories(),
-          fetchSizes(),
+          fetchCategories(apiMode),
+          fetchSizes(apiMode),
         ]);
         if (!active) return;
 
@@ -95,7 +97,7 @@ export function useAdminPanel({
     return () => {
       active = false;
     };
-  }, [setError]);
+  }, [apiMode, setError]);
 
   useEffect(() => {
     if (!editingId || !panelExpanded) return;
@@ -140,8 +142,8 @@ export function useAdminPanel({
 
   const refreshReferenceData = async () => {
     const [nextCategories, nextSizes] = await Promise.all([
-      fetchCategories(),
-      fetchSizes(),
+      fetchCategories(apiMode),
+      fetchSizes(apiMode),
     ]);
 
     setCategories(nextCategories);

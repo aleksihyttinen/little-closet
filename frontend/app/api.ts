@@ -13,6 +13,8 @@ import type {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
+export type ApiMode = "authenticated" | "demo";
+
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 let pendingToken: Promise<string | undefined> | null = null;
@@ -74,6 +76,7 @@ export class ApiError extends Error {
 export async function apiRequest(
   path: string,
   options: RequestInit = {},
+  mode: ApiMode = "authenticated",
 ): Promise<ApiResponse> {
   const headers = new Headers(options.headers);
 
@@ -81,10 +84,12 @@ export async function apiRequest(
     headers.set("Content-Type", "application/json");
   }
 
-  const token = await getToken();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (mode === "authenticated") {
+    const token = await getToken();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+  }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${API_BASE_URL}${mode === "demo" ? `/demo${path}` : path}`, {
     ...options,
     headers,
     credentials: "include",
@@ -120,13 +125,13 @@ function normalizeItem(item: ApiClothingItem): ClothingItem {
   };
 }
 
-export async function fetchClothingItems(): Promise<ClothingItem[]> {
-  const data = await apiRequest("/clothing");
+export async function fetchClothingItems(mode: ApiMode = "authenticated"): Promise<ClothingItem[]> {
+  const data = await apiRequest("/clothing", {}, mode);
   return (data.items ?? []).map(normalizeItem);
 }
 
-export async function fetchCategories(): Promise<CategoryOption[]> {
-  const data = (await apiRequest("/category")) as ApiCategoryResponse;
+export async function fetchCategories(mode: ApiMode = "authenticated"): Promise<CategoryOption[]> {
+  const data = (await apiRequest("/category", {}, mode)) as ApiCategoryResponse;
   return (data.items ?? []).map((category) => ({
     id: category.ID,
     name: category.Name,
@@ -134,8 +139,8 @@ export async function fetchCategories(): Promise<CategoryOption[]> {
   }));
 }
 
-export async function fetchSizes(): Promise<SizeOption[]> {
-  const data = (await apiRequest("/size")) as ApiSizeResponse;
+export async function fetchSizes(mode: ApiMode = "authenticated"): Promise<SizeOption[]> {
+  const data = (await apiRequest("/size", {}, mode)) as ApiSizeResponse;
   return (data.items ?? []).map((size) => ({
     id: size.ID,
     name: size.Name,
@@ -169,11 +174,12 @@ export async function generateOutfit(
   latitude: number,
   longitude: number,
   language: "en" | "fi",
+  mode: ApiMode = "authenticated",
 ): Promise<{ outfit: string; weather: OutfitWeather }> {
   const data = await apiRequest("/ai/generate-outfit", {
     method: "POST",
     body: JSON.stringify({ latitude, longitude, language }),
-  });
+  }, mode);
 
   let weather: unknown = data.weather;
   if (typeof weather === "string") {

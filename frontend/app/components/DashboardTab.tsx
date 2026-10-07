@@ -2,6 +2,7 @@
 
 import type { Messages } from "../messages";
 import type { ClothingItem, SizeOption } from "../types";
+import type { ApiMode } from "../api";
 import dynamic from "next/dynamic";
 
 // recharts is large; load it after hydration so it doesn't block the first interaction
@@ -16,6 +17,7 @@ type DashboardTabProps = {
   loading: boolean;
   getCategoryName: (item: ClothingItem) => string;
   getSizeName: (item: ClothingItem) => string;
+  apiMode?: ApiMode;
 };
 
 export default function DashboardTab({
@@ -27,6 +29,7 @@ export default function DashboardTab({
   totalUnits,
   getCategoryName,
   getSizeName,
+  apiMode = "authenticated",
 }: DashboardTabProps) {
   return (
     <div role="tabpanel" aria-label="Dashboard">
@@ -39,6 +42,7 @@ export default function DashboardTab({
         t={t}
         getCategoryName={getCategoryName}
         getSizeName={getSizeName}
+        apiMode={apiMode}
       />
     </div>
   );

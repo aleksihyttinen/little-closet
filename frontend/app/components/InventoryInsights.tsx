@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { generateOutfit } from "../api";
+import { generateOutfit, type ApiMode } from "../api";
 import type { Language, Messages } from "../messages";
 import type { ClothingItem, OutfitWeather, SizeOption } from "../types";
 
@@ -27,6 +27,7 @@ type InventoryInsightsProps = {
   t: Messages;
   getCategoryName: (item: ClothingItem) => string;
   getSizeName: (item: ClothingItem) => string;
+  apiMode?: ApiMode;
 };
 
 type UnitData = {
@@ -132,6 +133,7 @@ export default function InventoryInsights({
   t,
   getCategoryName,
   getSizeName,
+  apiMode = "authenticated",
 }: InventoryInsightsProps) {
   const locale = language === "fi" ? "fi-FI" : "en-US";
   const numberFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
@@ -173,6 +175,7 @@ export default function InventoryInsights({
         location.latitude,
         location.longitude,
         language,
+        apiMode,
       );
       setSuggestion({ ...result, language });
       setSuggestionOpen(true);

@@ -44,6 +44,7 @@ func TestLoadReadsParentEnvAndPreservesEnvironment(t *testing.T) {
 	t.Setenv("NEON_GENERATE_OUTFIT_FUNCTION_URL", "http://outfit")
 	t.Setenv("NEON_ANALYZE_IMAGE_FUNCTION_URL", "http://analyze")
 	t.Setenv("NEON_AUTH_URL", "http://auth")
+	t.Setenv("DEMO_USER_ID", "demo-user")
 	t.Setenv("NEON_FUNCTION_SECRET", "secret")
 
 	cfg := Load()

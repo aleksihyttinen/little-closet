@@ -35,7 +35,14 @@ type analyzeImageRequest struct {
 }
 
 func (h *Handler) GenerateOutfit(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	h.generateOutfitForUser(c, auth.CurrentNeonUserID(c))
+}
+
+func (h *Handler) GenerateOutfitForUser(c *gin.Context, userID string) {
+	h.generateOutfitForUser(c, userID)
+}
+
+func (h *Handler) generateOutfitForUser(c *gin.Context, userID string) {
 	var req generateOutfitRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {

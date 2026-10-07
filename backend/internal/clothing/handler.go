@@ -35,7 +35,14 @@ type updateClothingRequest struct {
 }
 
 func (h *Handler) List(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	h.listItemsForUser(c, auth.CurrentNeonUserID(c))
+}
+
+func (h *Handler) ListForUser(c *gin.Context, userID string) {
+	h.listItemsForUser(c, userID)
+}
+
+func (h *Handler) listItemsForUser(c *gin.Context, userID string) {
 	items, err := h.service.GetClothing(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -229,7 +236,14 @@ type updateSizeRequest struct {
 }
 
 func (h *Handler) ListCategories(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	h.listCategories(c, auth.CurrentNeonUserID(c))
+}
+
+func (h *Handler) ListCategoriesForUser(c *gin.Context, userID string) {
+	h.listCategories(c, userID)
+}
+
+func (h *Handler) listCategories(c *gin.Context, userID string) {
 	items, err := h.service.GetGategories(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch categories"})
@@ -361,7 +375,14 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 }
 
 func (h *Handler) ListSizes(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	h.listSizes(c, auth.CurrentNeonUserID(c))
+}
+
+func (h *Handler) ListSizesForUser(c *gin.Context, userID string) {
+	h.listSizes(c, userID)
+}
+
+func (h *Handler) listSizes(c *gin.Context, userID string) {
 	items, err := h.service.GetSizes(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch sizes"})
