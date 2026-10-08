@@ -16,6 +16,18 @@ type Category struct {
 	CreatedAt pgtype.Timestamptz
 }
 
+type ClosetShare struct {
+	ID               pgtype.UUID
+	OwnerUserID      string
+	SharedWithUserID pgtype.Text
+	Role             string
+	TokenHash        string
+	ExpiresAt        pgtype.Timestamptz
+	AcceptedAt       pgtype.Timestamptz
+	RevokedAt        pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamptz
+}
+
 type ClothingItem struct {
 	ID         pgtype.UUID
 	UserID     string

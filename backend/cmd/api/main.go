@@ -9,6 +9,7 @@ import (
 	"little-closet/internal/config"
 	"little-closet/internal/database"
 	"little-closet/internal/demo"
+	"little-closet/internal/sharing"
 	"log"
 	"net/http"
 	"time"
@@ -40,7 +41,7 @@ func main() {
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendURL},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Closet-Owner-ID"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -56,6 +57,7 @@ func main() {
 	aiService := ai.NewService(queries, httpClient, cfg.NeonGenerateOutfitFunctionURL, cfg.NeonAnalyzeImageFunctionURL, cfg.NeonFunctionSecret)
 	aiHandler := ai.NewHandler(aiService)
 	demoHandler := demo.NewHandler(cfg.DemoUserID, clothingHandler, aiHandler)
+	sharingHandler := sharing.NewHandler(queries)
 
 	api := router.Group("/api/v1")
 
@@ -67,24 +69,33 @@ func main() {
 
 	protected := api.Group("")
 	protected.Use(neonAuth.Middleware())
+	protected.Use(auth.ClosetAccessMiddleware(queries))
 
 	protected.GET("/clothing", clothingHandler.List)
 	protected.GET("/size", clothingHandler.ListSizes)
 	protected.GET("/category", clothingHandler.ListCategories)
 	protected.POST("/ai/generate-outfit", aiHandler.GenerateOutfit)
-	protected.POST("/ai/analyze-image", aiHandler.AnalyzeImage)
+	protected.GET("/closet/shares", sharingHandler.List)
+	protected.POST("/closet/shares", sharingHandler.Create)
+	protected.POST("/closet/invitations/accept", sharingHandler.Accept)
+	protected.DELETE("/closet/shares/:id", sharingHandler.Revoke)
 
-	protected.POST("/clothing", clothingHandler.Create)
-	protected.PUT("/clothing/:id", clothingHandler.Update)
-	protected.DELETE("/clothing/:id", clothingHandler.Delete)
+	editor := protected.Group("")
+	editor.Use(auth.RequireClosetEditor())
 
-	protected.POST("/size", clothingHandler.CreateSize)
-	protected.PUT("/size/:id", clothingHandler.UpdateSize)
-	protected.DELETE("/size/:id", clothingHandler.DeleteSize)
+	editor.POST("/ai/analyze-image", aiHandler.AnalyzeImage)
 
-	protected.POST("/category", clothingHandler.CreateCategory)
-	protected.PUT("/category/:id", clothingHandler.UpdateCategory)
-	protected.DELETE("/category/:id", clothingHandler.DeleteCategory)
+	editor.POST("/clothing", clothingHandler.Create)
+	editor.PUT("/clothing/:id", clothingHandler.Update)
+	editor.DELETE("/clothing/:id", clothingHandler.Delete)
+
+	editor.POST("/size", clothingHandler.CreateSize)
+	editor.PUT("/size/:id", clothingHandler.UpdateSize)
+	editor.DELETE("/size/:id", clothingHandler.DeleteSize)
+
+	editor.POST("/category", clothingHandler.CreateCategory)
+	editor.PUT("/category/:id", clothingHandler.UpdateCategory)
+	editor.DELETE("/category/:id", clothingHandler.DeleteCategory)
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

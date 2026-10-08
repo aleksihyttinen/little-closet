@@ -35,7 +35,7 @@ type updateClothingRequest struct {
 }
 
 func (h *Handler) List(c *gin.Context) {
-	h.listItemsForUser(c, auth.CurrentNeonUserID(c))
+	h.listItemsForUser(c, auth.CurrentClosetOwnerID(c))
 }
 
 func (h *Handler) ListForUser(c *gin.Context, userID string) {
@@ -61,7 +61,7 @@ func (h *Handler) listItemsForUser(c *gin.Context, userID string) {
 }
 
 func (h *Handler) Create(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	var req createClothingRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -120,7 +120,7 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 func (h *Handler) Update(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	var req updateClothingRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -193,7 +193,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 func (h *Handler) Delete(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	clothingID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -236,7 +236,7 @@ type updateSizeRequest struct {
 }
 
 func (h *Handler) ListCategories(c *gin.Context) {
-	h.listCategories(c, auth.CurrentNeonUserID(c))
+	h.listCategories(c, auth.CurrentClosetOwnerID(c))
 }
 
 func (h *Handler) ListCategoriesForUser(c *gin.Context, userID string) {
@@ -256,7 +256,7 @@ func (h *Handler) listCategories(c *gin.Context, userID string) {
 }
 
 func (h *Handler) CreateCategory(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	var req createCategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -296,7 +296,7 @@ func (h *Handler) CreateCategory(c *gin.Context) {
 }
 
 func (h *Handler) UpdateCategory(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	var req updateCategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -354,7 +354,7 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 }
 
 func (h *Handler) DeleteCategory(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	categoryID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category_id"})
@@ -375,7 +375,7 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 }
 
 func (h *Handler) ListSizes(c *gin.Context) {
-	h.listSizes(c, auth.CurrentNeonUserID(c))
+	h.listSizes(c, auth.CurrentClosetOwnerID(c))
 }
 
 func (h *Handler) ListSizesForUser(c *gin.Context, userID string) {
@@ -395,7 +395,7 @@ func (h *Handler) listSizes(c *gin.Context, userID string) {
 }
 
 func (h *Handler) CreateSize(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	var req createSizeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -417,7 +417,7 @@ func (h *Handler) CreateSize(c *gin.Context) {
 }
 
 func (h *Handler) UpdateSize(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	var req updateSizeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -449,7 +449,7 @@ func (h *Handler) UpdateSize(c *gin.Context) {
 }
 
 func (h *Handler) DeleteSize(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	sizeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid size_id"})

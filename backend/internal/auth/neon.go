@@ -9,9 +9,14 @@ import (
 	"github.com/MicahParks/keyfunc/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	db "little-closet/db/generated"
 )
 
 const neonUserIDKey = "neon_user_id"
+const closetOwnerIDKey = "closet_owner_id"
+const closetRoleKey = "closet_role"
 
 type NeonVerifier struct {
 	jwks keyfunc.Keyfunc
@@ -62,6 +67,50 @@ func (v *NeonVerifier) Middleware() gin.HandlerFunc {
 	}
 }
 
+func ClosetAccessMiddleware(queries *db.Queries) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := CurrentNeonUserID(c)
+		ownerID := c.GetHeader("X-Closet-Owner-ID")
+		if ownerID == "" || ownerID == userID {
+			c.Set(closetOwnerIDKey, userID)
+			c.Set(closetRoleKey, "owner")
+			c.Next()
+			return
+		}
+
+		share, err := queries.ResolveSharedClosetByOwner(
+			c.Request.Context(),
+			db.ResolveSharedClosetByOwnerParams{
+				SharedWithUserID: pgtype.Text{String: userID, Valid: true},
+				OwnerUserID:      ownerID,
+			},
+		)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "closet access denied"})
+				return
+			}
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to verify closet access"})
+			return
+		}
+
+		c.Set(closetOwnerIDKey, share.OwnerUserID)
+		c.Set(closetRoleKey, share.Role)
+		c.Next()
+	}
+}
+
+func RequireClosetEditor() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, exists := c.Get(closetRoleKey)
+		if !exists || (role != "owner" && role != "editor") {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "editor access required"})
+			return
+		}
+		c.Next()
+	}
+}
+
 func (v *NeonVerifier) Session(c *gin.Context) {
 	sub, err := v.Verify(bearerToken(c))
 	if err != nil {
@@ -73,4 +122,12 @@ func (v *NeonVerifier) Session(c *gin.Context) {
 
 func CurrentNeonUserID(c *gin.Context) string {
 	return c.GetString(neonUserIDKey)
+}
+
+func CurrentClosetOwnerID(c *gin.Context) string {
+	return c.GetString(closetOwnerIDKey)
+}
+
+func CurrentClosetRole(c *gin.Context) string {
+	return c.GetString(closetRoleKey)
 }

@@ -52,6 +52,8 @@ export type ApiResponse = {
   item?: { ID?: string };
   outfit?: string;
   weather?: OutfitWeather | string;
+  shares?: unknown[];
+  share?: unknown;
 };
 
 export type OutfitWeather = {

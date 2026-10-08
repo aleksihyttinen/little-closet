@@ -15,6 +15,7 @@ import {
   clearCachedToken,
   fetchClothingItems,
   getAuthSession,
+  clearActiveClosetOwnerId,
   type ApiMode,
 } from "./api";
 import { messages, type Language } from "./messages";
@@ -233,6 +234,7 @@ export default function ClosetApp({ mode }: { mode: ApiMode }) {
     try {
       await authClient.signOut();
       clearCachedToken();
+      clearActiveClosetOwnerId();
       navigator.serviceWorker.controller?.postMessage({
         type: "CLEAR_API_CACHE",
       });
@@ -360,6 +362,7 @@ export default function ClosetApp({ mode }: { mode: ApiMode }) {
             language={language}
             onLanguageChange={changeLanguage}
             user={user}
+            canShare={signedIn && !isDemo}
             onSignInClick={openLogin}
             onLogout={() => void handleLogout()}
           />

@@ -26,6 +26,7 @@ It includes AI-assisted clothing recognition and outfit recommendations, with a 
 
 - Multi-user support: sign in with Neon Auth (Google OAuth), with all data scoped to the signed-in user
 - Public read-only demo mode at `/demo`, backed by a dedicated Neon Auth user
+- Shareable closets with expiring viewer/editor invitation links
 - Clothing inventory management with user-defined categories, subcategories, and sizes
 - Custom size ordering, reordered with up/down controls
 - Search and filtering by name, category, and size
@@ -115,6 +116,15 @@ Copy `.env.example` to `.env`. The root `.env` is the single env file for the wh
 The frontend uses `NEON_AUTH_URL` and `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:8080/api/v1`). The Neon Functions use `FOUNDRY_ENDPOINT`, `FOUNDRY_API_KEY`, `FOUNDRY_DEPLOYMENT`, and `NEON_FUNCTION_SECRET`. Run Neon CLI commands from `neon/` against the root file, for example `neon deploy --env ../.env` and `neon env pull --file ../.env`, so no `.env` is created inside `neon/`.
 
 The `/demo` route is public and read-only. Configure `DEMO_USER_ID` with a dedicated Neon Auth user that has the sample wardrobe data. Demo routes never accept a user ID from the browser and do not expose create, update, delete, or image-analysis operations.
+
+## Sharing a closet
+
+Signed-in users can create a seven-day invitation link from the User tab and choose either:
+
+- **Viewer:** can browse the shared wardrobe and generate outfit suggestions
+- **Editor:** can also add, edit, and remove clothing, categories, and sizes
+
+The recipient opens the `/share?token=...` link, signs in, and accepts it. The shared closet is then selected for that browser session. The owner can revoke invitations from the User tab. Invitation tokens are stored only as hashes in PostgreSQL, and the API validates the recipient and permission on every request.
 
 ## Project Structure
 

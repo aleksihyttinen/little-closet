@@ -35,7 +35,7 @@ type analyzeImageRequest struct {
 }
 
 func (h *Handler) GenerateOutfit(c *gin.Context) {
-	h.generateOutfitForUser(c, auth.CurrentNeonUserID(c))
+	h.generateOutfitForUser(c, auth.CurrentClosetOwnerID(c))
 }
 
 func (h *Handler) GenerateOutfitForUser(c *gin.Context, userID string) {
@@ -159,7 +159,7 @@ func roundCoordinate(value float64) float64 {
 }
 
 func (h *Handler) AnalyzeImage(c *gin.Context) {
-	userID := auth.CurrentNeonUserID(c)
+	userID := auth.CurrentClosetOwnerID(c)
 	language := c.PostForm("language")
 
 	if language != "en" && language != "fi" {

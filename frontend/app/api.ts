@@ -14,6 +14,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
 export type ApiMode = "authenticated" | "demo";
+const activeClosetOwnerStorageKey = "little-closet-active-closet-owner";
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
@@ -64,6 +65,19 @@ export function clearCachedToken() {
   cachedToken = null;
 }
 
+export function getActiveClosetOwnerId(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(activeClosetOwnerStorageKey);
+}
+
+export function setActiveClosetOwnerId(ownerId: string) {
+  window.localStorage.setItem(activeClosetOwnerStorageKey, ownerId);
+}
+
+export function clearActiveClosetOwnerId() {
+  window.localStorage.removeItem(activeClosetOwnerStorageKey);
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -87,6 +101,8 @@ export async function apiRequest(
   if (mode === "authenticated") {
     const token = await getToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
+    const closetOwnerId = getActiveClosetOwnerId();
+    if (closetOwnerId) headers.set("X-Closet-Owner-ID", closetOwnerId);
   }
 
   const response = await fetch(`${API_BASE_URL}${mode === "demo" ? `/demo${path}` : path}`, {
@@ -110,6 +126,43 @@ export async function apiRequest(
   }
 
   return data;
+}
+
+export type ClosetShare = {
+  id: string;
+  owner_user_id: string;
+  shared_with_user_id: string | null;
+  role: "viewer" | "editor";
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+};
+
+export async function fetchClosetShares(): Promise<ClosetShare[]> {
+  const data = await apiRequest("/closet/shares");
+  return (data.items ?? []) as unknown as ClosetShare[];
+}
+
+export async function createClosetShare(
+  role: ClosetShare["role"],
+): Promise<{ share: ClosetShare; invite_token: string }> {
+  const data = await apiRequest("/closet/shares", {
+    method: "POST",
+    body: JSON.stringify({ role }),
+  });
+  return data as unknown as { share: ClosetShare; invite_token: string };
+}
+
+export async function revokeClosetShare(id: string): Promise<void> {
+  await apiRequest(`/closet/shares/${id}`, { method: "DELETE" });
+}
+
+export async function acceptClosetShare(token: string): Promise<ClosetShare> {
+  const data = await apiRequest("/closet/invitations/accept", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+  return data.share as ClosetShare;
 }
 
 function normalizeItem(item: ApiClothingItem): ClothingItem {
