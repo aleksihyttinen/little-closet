@@ -10,6 +10,7 @@ export function generateStaticParams() {
     { path: "forgot-password" },
     { path: "reset-password" },
     { path: "sign-out" },
+    { path: "callback" },
   ];
 }
 
