@@ -2,6 +2,7 @@
 
 import { AuthView } from "@neondatabase/auth-ui";
 import { useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { messages, type Language } from "@/app/messages";
 
@@ -21,6 +22,9 @@ function getServerLanguageSnapshot(): Language {
 }
 
 export default function AuthPageClient({ path }: { path: string }) {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") ?? undefined;
+
   const language = useSyncExternalStore(
     subscribeToLanguage,
     getLanguageSnapshot,
@@ -30,7 +34,11 @@ export default function AuthPageClient({ path }: { path: string }) {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-5 p-4">
-      <AuthView path={path} />
+      <AuthView
+        path={path}
+        redirectTo={redirectTo}
+      />
+
       {(path === "sign-in" || path === "sign-up") ? (
         <Link
           href="/demo"

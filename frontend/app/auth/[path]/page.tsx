@@ -1,4 +1,5 @@
 import AuthPageClient from "@/app/components/AuthPageClient";
+import { Suspense } from "react";
 
 export const dynamicParams = false;
 
@@ -19,5 +20,9 @@ export default async function AuthPage({
 }) {
   const { path } = await params;
 
-  return <AuthPageClient path={path} />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthPageClient path={path} />
+    </Suspense>
+  );
 }

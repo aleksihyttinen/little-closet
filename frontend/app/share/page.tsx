@@ -23,7 +23,7 @@ export default function SharePage() {
     () => "fi",
   );
   const token = useSyncExternalStore(
-    () => () => {},
+    () => () => { },
     () => new URLSearchParams(window.location.search).get("token") ?? "",
     () => "",
   );
@@ -68,7 +68,10 @@ export default function SharePage() {
         <h1 className="mt-2 text-2xl font-semibold">{t.acceptClosetShare}</h1>
         <p className="mt-3 text-sm text-[#68746d]">{t.acceptClosetShareHint}</p>
         {!signedIn ? (
-          <Link href="/auth/sign-in" className="mt-6 inline-flex min-h-11 items-center rounded-md bg-[#315c4c] px-5 text-sm font-semibold text-white">
+          <Link
+            href={`/auth/sign-in?redirect=${encodeURIComponent(`/share?token=${token}`)}`}
+            className="mt-6 inline-flex min-h-11 items-center rounded-md bg-[#315c4c] px-5 text-sm font-semibold text-white"
+          >
             {t.signIn}
           </Link>
         ) : (
