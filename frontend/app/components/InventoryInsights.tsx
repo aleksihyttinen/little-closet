@@ -6,7 +6,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -297,10 +296,6 @@ export default function InventoryInsights({
             <p className="text-xs font-semibold uppercase tracking-wide text-[#65716b]">{t.piecesInCloset}</p>
             <p className="mt-1 text-2xl font-semibold">{totalUnits}</p>
           </div>
-          <div className="border-l-2 border-[#d7a45b] bg-white/70 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#65716b]">{t.differentItems}</p>
-            <p className="mt-1 text-2xl font-semibold">{items.length}</p>
-          </div>
           <div className="border-l-2 border-[#94adb0] bg-white/70 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#65716b]">{t.categories}</p>
             <p className="mt-1 text-2xl font-semibold">
@@ -367,46 +362,58 @@ export default function InventoryInsights({
           ) : sizeData.length === 0 ? (
             <p className="py-12 text-center text-sm text-[#68746d]">{t.noChartData}</p>
           ) : (
-            <div className="w-full" style={{ height: `${Math.min(480, Math.max(360, sizeData.length * 28))}px` }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  accessibilityLayer
-                  data={sizeData}
-                  layout="vertical"
-                  margin={{ top: 2, right: 12, bottom: 2, left: 0 }}
-                >
-                  <CartesianGrid horizontal={false} stroke="#e5e9e2" />
-                  <XAxis type="number" allowDecimals={false} hide />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    width={80}
-                    interval={0}
-                    minTickGap={0}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#59675e", fontSize: 12 }}
-                  />
-                  <Tooltip formatter={(value) => formatUnits(value as number | string | undefined)} />
-                  <Legend
-                    wrapperStyle={{ paddingTop: "20px", fontSize: "12px" }}
-                    iconType="square"
-                    height={60}
-                  />
-                  {categoryData.map((category, index) => (
-                    <Bar
-                      key={category.id}
-                      dataKey={category.id}
-                      stackId="categories"
-                      fill={categoryColors[index % categoryColors.length]}
-                      radius={index === categoryData.length - 1 ? [0, 3, 3, 0] : 0}
-                      maxBarSize={18}
-                      isAnimationActive={animateCharts}
-                      name={category.name}
+            <div className="w-full">
+              <div
+                className="w-full"
+                style={{ height: `${Math.min(480, Math.max(220, sizeData.length * 28))}px` }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    accessibilityLayer
+                    data={sizeData}
+                    layout="vertical"
+                    margin={{ top: 2, right: 12, bottom: 2, left: 0 }}
+                  >
+                    <CartesianGrid horizontal={false} stroke="#e5e9e2" />
+                    <XAxis type="number" allowDecimals={false} hide />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={80}
+                      interval={0}
+                      minTickGap={0}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#59675e", fontSize: 12 }}
                     />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
+                    <Tooltip formatter={(value) => formatUnits(value as number | string | undefined)} />
+                    {categoryData.map((category, index) => (
+                      <Bar
+                        key={category.id}
+                        dataKey={category.id}
+                        stackId="categories"
+                        fill={categoryColors[index % categoryColors.length]}
+                        radius={index === categoryData.length - 1 ? [0, 3, 3, 0] : 0}
+                        maxBarSize={18}
+                        isAnimationActive={animateCharts}
+                        name={category.name}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <ul className="mt-2 grid max-h-28 grid-cols-2 gap-x-3 gap-y-1 overflow-y-auto text-xs sm:max-h-36 sm:grid-cols-3">
+                {categoryData.map((category, index) => (
+                  <li key={category.id} className="flex min-w-0 items-center gap-2 text-[#59675e]">
+                    <span
+                      aria-hidden="true"
+                      className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                      style={{ backgroundColor: categoryColors[index % categoryColors.length] }}
+                    />
+                    <span className="min-w-0 truncate">{category.name}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </section>
