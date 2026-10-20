@@ -31,6 +31,11 @@ services:
       - /var/www/homepage:/var/www/homepage:ro
       - caddy_data:/data
       - caddy_config:/config
+
+    networks:
+      - web
+      - default
+      
     depends_on:
       - frontend
       - backend
@@ -38,3 +43,8 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+networks:
+  web:
+    external: true
+
+  default:

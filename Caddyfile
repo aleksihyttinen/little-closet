@@ -17,3 +17,7 @@ littlecloset.leksi.dev {
         reverse_proxy frontend:80
     }
 }
+
+predict.leksi.dev {
+    reverse_proxy feed-predict:8000
+}
