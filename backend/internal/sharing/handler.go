@@ -7,7 +7,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	db "little-closet/db/generated"
 	"little-closet/internal/auth"
@@ -19,6 +21,7 @@ import (
 )
 
 const invitationLifetime = 7 * 24 * time.Hour
+const maxShareNameLength = 100
 
 type Handler struct {
 	queries *db.Queries
@@ -30,6 +33,7 @@ func NewHandler(queries *db.Queries) *Handler {
 
 type createShareRequest struct {
 	Role string `json:"role"`
+	Name string `json:"name"`
 }
 
 func newInvitationToken() (string, string, error) {
@@ -48,6 +52,11 @@ func (h *Handler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "role must be viewer or editor"})
 		return
 	}
+	req.Name = strings.TrimSpace(req.Name)
+	if utf8.RuneCountInString(req.Name) > maxShareNameLength {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is too long"})
+		return
+	}
 
 	token, tokenHash, err := newInvitationToken()
 	if err != nil {
@@ -60,6 +69,7 @@ func (h *Handler) Create(c *gin.Context) {
 		ID:          pgtype.UUID{Bytes: uuid.New(), Valid: true},
 		OwnerUserID: auth.CurrentNeonUserID(c),
 		Role:        req.Role,
+		Name:        req.Name,
 		TokenHash:   tokenHash,
 		ExpiresAt:   pgtype.Timestamptz{Time: expiresAt, Valid: true},
 	})
@@ -69,7 +79,7 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"share":        shareResponse(share.ID, share.OwnerUserID, share.SharedWithUserID, share.Role, share.ExpiresAt, share.AcceptedAt, share.RevokedAt),
+		"share":        shareResponse(share.ID, share.OwnerUserID, share.SharedWithUserID, share.Role, share.Name, share.ExpiresAt, share.AcceptedAt, share.RevokedAt),
 		"invite_token": token,
 	})
 }
@@ -83,7 +93,7 @@ func (h *Handler) List(c *gin.Context) {
 
 	items := make([]gin.H, 0, len(shares))
 	for _, share := range shares {
-		items = append(items, shareResponse(share.ID, share.OwnerUserID, share.SharedWithUserID, share.Role, share.ExpiresAt, share.AcceptedAt, share.RevokedAt))
+		items = append(items, shareResponse(share.ID, share.OwnerUserID, share.SharedWithUserID, share.Role, share.Name, share.ExpiresAt, share.AcceptedAt, share.RevokedAt))
 	}
 	c.JSON(http.StatusOK, gin.H{"items": items})
 }
@@ -103,6 +113,23 @@ func (h *Handler) Revoke(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "closet share revoked"})
+}
+
+func (h *Handler) Delete(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid share_id"})
+		return
+	}
+
+	if err := h.queries.DeleteRevokedClosetShare(c.Request.Context(), db.DeleteRevokedClosetShareParams{
+		ID:          pgtype.UUID{Bytes: id, Valid: true},
+		OwnerUserID: auth.CurrentNeonUserID(c),
+	}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete closet share"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "closet share deleted"})
 }
 
 func (h *Handler) Accept(c *gin.Context) {
@@ -128,7 +155,7 @@ func (h *Handler) Accept(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"share": shareResponse(share.ID, share.OwnerUserID, share.SharedWithUserID, share.Role, share.ExpiresAt, share.AcceptedAt, share.RevokedAt)})
+	c.JSON(http.StatusOK, gin.H{"share": shareResponse(share.ID, share.OwnerUserID, share.SharedWithUserID, share.Role, share.Name, share.ExpiresAt, share.AcceptedAt, share.RevokedAt)})
 }
 
 func shareResponse(
@@ -136,6 +163,7 @@ func shareResponse(
 	ownerUserID string,
 	sharedWithUserID pgtype.Text,
 	role string,
+	name string,
 	expiresAt pgtype.Timestamptz,
 	acceptedAt pgtype.Timestamptz,
 	revokedAt pgtype.Timestamptz,
@@ -145,6 +173,7 @@ func shareResponse(
 		"owner_user_id":       ownerUserID,
 		"shared_with_user_id": sharedWithUserID,
 		"role":                role,
+		"name":                name,
 		"expires_at":          expiresAt,
 		"accepted_at":         acceptedAt,
 		"revoked_at":          revokedAt,

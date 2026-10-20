@@ -26,6 +26,7 @@ type ClosetShare struct {
 	AcceptedAt       pgtype.Timestamptz
 	RevokedAt        pgtype.Timestamptz
 	CreatedAt        pgtype.Timestamptz
+	Name             string
 }
 
 type ClothingItem struct {

@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   createClosetShare,
   clearActiveClosetOwnerId,
+  deleteClosetShare,
   fetchClosetShares,
   getActiveClosetOwnerId,
   revokeClosetShare,
@@ -25,6 +26,7 @@ type UserTabProps = {
 export default function UserTab({ t, language, onLanguageChange, user, signedIn, onSignInClick, onLogout, canShare = false }: UserTabProps) {
   const [shares, setShares] = useState<ClosetShare[]>([]);
   const [role, setRole] = useState<ClosetShare["role"]>("viewer");
+  const [shareName, setShareName] = useState("");
   const [creatingShare, setCreatingShare] = useState(false);
   const [shareError, setShareError] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -55,8 +57,9 @@ export default function UserTab({ t, language, onLanguageChange, user, signedIn,
     setShareError(false);
     setCopied(false);
     try {
-      const result = await createClosetShare(role);
+      const result = await createClosetShare(role, shareName);
       setShares((current) => [result.share, ...current]);
+      setShareName("");
       setInviteLink(`${window.location.origin}/share?token=${encodeURIComponent(result.invite_token)}`);
     } catch {
       setShareError(true);
@@ -75,6 +78,22 @@ export default function UserTab({ t, language, onLanguageChange, user, signedIn,
     } catch {
       setShareError(true);
     }
+  };
+
+  const deleteShare = async (share: ClosetShare) => {
+    if (!window.confirm(t.confirmDeleteShare)) return;
+    try {
+      await deleteClosetShare(share.id);
+      setShares((current) => current.filter((item) => item.id !== share.id));
+    } catch {
+      setShareError(true);
+    }
+  };
+
+  const shareStatus = (share: ClosetShare) => {
+    if (share.revoked_at) return t.revokedInvitation;
+    if (share.accepted_at) return t.acceptedInvitation;
+    return new Date(share.expires_at) < new Date() ? t.expiredInvitation : t.pendingInvitation;
   };
 
   const copyInviteLink = async () => {
@@ -173,6 +192,16 @@ export default function UserTab({ t, language, onLanguageChange, user, signedIn,
               <p className="mt-2 text-sm text-[#68746d]">{t.shareClosetHint}</p>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
                 <label className="flex-1 text-sm font-medium">
+                  {t.shareName}
+                  <input
+                    value={shareName}
+                    onChange={(event) => setShareName(event.target.value)}
+                    maxLength={100}
+                    placeholder={t.shareNamePlaceholder}
+                    className="mt-1 block min-h-11 w-full rounded-md border border-[#cbd3ca] bg-white px-3"
+                  />
+                </label>
+                <label className="flex-1 text-sm font-medium">
                   {t.shareRole}
                   <select
                     value={role}
@@ -208,13 +237,18 @@ export default function UserTab({ t, language, onLanguageChange, user, signedIn,
                     {shares.map((share) => (
                       <li key={share.id} className="flex flex-col gap-2 rounded-md border border-[#e1e6df] p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                         <span>
-                          {share.role === "viewer" ? t.viewer : t.editor} · {share.accepted_at ? t.acceptedInvitation : share.revoked_at ? t.expiredInvitation : t.pendingInvitation}
+                          {share.name ? <span className="font-semibold">{share.name} · </span> : null}
+                          {share.role === "viewer" ? t.viewer : t.editor} · {shareStatus(share)}
                         </span>
-                        {!share.revoked_at ? (
+                        {share.revoked_at ? (
+                          <button type="button" onClick={() => void deleteShare(share)} className="self-start text-sm font-semibold text-[#a83d2b] sm:self-auto">
+                            {t.deleteShare}
+                          </button>
+                        ) : (
                           <button type="button" onClick={() => void revokeShare(share)} className="self-start text-sm font-semibold text-[#a83d2b] sm:self-auto">
                             {t.revokeShare}
                           </button>
-                        ) : null}
+                        )}
                       </li>
                     ))}
                   </ul>

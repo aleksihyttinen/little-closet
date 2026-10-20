@@ -133,6 +133,7 @@ export type ClosetShare = {
   owner_user_id: string;
   shared_with_user_id: string | null;
   role: "viewer" | "editor";
+  name: string;
   expires_at: string;
   accepted_at: string | null;
   revoked_at: string | null;
@@ -145,16 +146,21 @@ export async function fetchClosetShares(): Promise<ClosetShare[]> {
 
 export async function createClosetShare(
   role: ClosetShare["role"],
+  name: string,
 ): Promise<{ share: ClosetShare; invite_token: string }> {
   const data = await apiRequest("/closet/shares", {
     method: "POST",
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ role, name }),
   });
   return data as unknown as { share: ClosetShare; invite_token: string };
 }
 
 export async function revokeClosetShare(id: string): Promise<void> {
   await apiRequest(`/closet/shares/${id}`, { method: "DELETE" });
+}
+
+export async function deleteClosetShare(id: string): Promise<void> {
+  await apiRequest(`/closet/shares/${id}/permanent`, { method: "DELETE" });
 }
 
 export async function acceptClosetShare(token: string): Promise<ClosetShare> {

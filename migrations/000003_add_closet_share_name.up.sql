@@ -1,0 +1,1 @@
+ALTER TABLE closet_shares ADD COLUMN name TEXT NOT NULL DEFAULT '';

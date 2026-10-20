@@ -79,6 +79,7 @@ func main() {
 	protected.POST("/closet/shares", sharingHandler.Create)
 	protected.POST("/closet/invitations/accept", sharingHandler.Accept)
 	protected.DELETE("/closet/shares/:id", sharingHandler.Revoke)
+	protected.DELETE("/closet/shares/:id/permanent", sharingHandler.Delete)
 
 	editor := protected.Group("")
 	editor.Use(auth.RequireClosetEditor())
