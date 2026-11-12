@@ -18,9 +18,8 @@ It includes AI-assisted clothing recognition and outfit recommendations, with a 
 
 ## Live Demo
 
-[LittleCloset on Render](https://little-closet.onrender.com)
+[Little Closet](https://littlecloset.leksi.dev)
 
-> The service may take around one minute to start after a period of inactivity.
 
 ## Features
 
@@ -95,7 +94,7 @@ The Go API verifies the Neon Auth JWT on every request (except `/health` and the
 - **Database:** PostgreSQL, Neon
 - **AI:** Neon Functions, Microsoft Foundry
 - **Weather:** Open-Meteo API
-- **Deployment:** Render
+- **Deployment:** Linux VPS
 - **Tooling:** Docker, Git
 
 ## Configuration
